@@ -1,3 +1,25 @@
+# 📊 네이버 오픈API 종합 분석 대시보드
+
+네이버의 다양한 오픈 API(검색어 트렌드, 쇼핑, 블로그, 카페글, 뉴스, 쇼핑 트렌드)를 통합 연동하여, 키워드 트렌드와 소셜 여론을 실시간으로 분석하고 시각화하는 Streamlit 대시보드 프로젝트입니다.
+
+## 🚀 배포 링크
+* **Streamlit 접속 주소**: [네이버 API 종합 분석 대시보드 바로가기](https://icb10proj2-3bx4bjrbpn7susafuxhcvs.streamlit.app/)
+
+## 🛠️ 현재 프로젝트 작업 내역
+* **Streamlit 배포 지원 및 환경 설정**:
+  - `requirements.txt` 의존성 패키지 정의
+  - `st.secrets` 설정을 통한 네이버 API Client ID/Secret 보안 연동 적용
+* **인증 관리 및 UI 개선**:
+  - 네이버 API 인증을 위한 로컬 `.env` 파일 관리 적용
+  - 대시보드 UI 상단에서 민감한 인증 정보(Client ID & Secret) 노출 방지 처리
+* **자동화 워크플로우 (Git Hooks) 구축**:
+  - `pre-commit` hook: 커밋 시 스테이징되지 않은 파일이나 새 파일을 자동으로 `git add -A` 처리
+  - `post-commit` hook: 커밋 완료 후 원격 저장소(`origin`)로 자동 `git push` 연동
+* **통합 대시보드 구현**:
+  - `naver-api-app/src/app.py`를 통한 검색 트렌드, 쇼핑 트렌드, 소셜(블로그, 카페, 뉴스) 정보 통합 분석 및 Plotly 시각화 로직 구현
+
+---
+
 ## STEP 0. 팀 구성 및 협업 환경 세팅
 
 ### 슬랙 세팅
