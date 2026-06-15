@@ -3,6 +3,7 @@
 설명: 네이버 오픈API(검색어 트렌드, 쇼핑, 블로그, 카페글, 뉴스, 쇼핑 트렌드)를 통합 연동하여
       데이터를 분석하고 Plotly를 활용해 시각화하는 Streamlit 대시보드 메인 프로그램입니다.
 생성일: 2026-06-08
+수정일: 2026-06-15 (성능 최적화를 위한 API 캐싱 기능 및 새로고침 UI 추가)
 """
 
 import streamlit as st
@@ -59,25 +60,77 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 # API 호출 공통 유틸리티 함수
 # -----------------------------------------------------------------------------
-def fetch_naver_api(url, headers, params=None, method="GET", json_data=None):
-    """네이버 오픈API를 호출하는 공통 유틸리티 함수"""
+@st.cache_data(ttl=3600)
+def _fetch_naver_api_cached(url, client_id, client_secret, params_tuple=None, method="GET", json_data_str=None):
+    """네이버 오픈API를 호출하고 결과를 캐싱하는 내부 캐시 함수"""
+    import json
+    headers = {
+        "X-Naver-Client-Id": client_id,
+        "X-Naver-Client-Secret": client_secret
+    }
     try:
         if method == "POST":
+            headers["Content-Type"] = "application/json"
+            json_data = json.loads(json_data_str) if json_data_str else None
             response = requests.post(url, headers=headers, json=json_data, timeout=10)
         else:
+            params = dict(params_tuple) if params_tuple else None
             response = requests.get(url, headers=headers, params=params, timeout=10)
         
         if response.status_code == 200:
-            return {"status": "success", "data": response.json()}
+            return {
+                "status": "success",
+                "data": response.json(),
+                "fetched_at": datetime.datetime.now().timestamp()
+            }
         else:
-            # 상태 코드별 상세 예외 메시지 반환
-            status_code = response.status_code
-            error_info = response.json() if response.text else {}
-            err_msg = error_info.get("errorMessage", "알 수 없는 오류가 발생했습니다.")
+            raise RuntimeError(f"HTTP_ERROR:{response.status_code}:{response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"NETWORK_ERROR:{str(e)}")
+
+def fetch_naver_api(url, headers, params=None, method="GET", json_data=None):
+    """네이버 오픈API를 호출하는 공통 유틸리티 함수 (캐시 적용 래퍼)"""
+    import json
+    client_id = headers.get("X-Naver-Client-Id", "")
+    client_secret = headers.get("X-Naver-Client-Secret", "")
+    
+    # 딕셔너리를 캐시 가능한 형태(정렬된 튜플)로 변환
+    params_tuple = tuple(sorted(params.items())) if params else None
+    json_data_str = json.dumps(json_data, sort_keys=True) if json_data else None
+    
+    try:
+        # 캐싱된 내부 함수 호출
+        res = _fetch_naver_api_cached(
+            url, client_id, client_secret, params_tuple, method, json_data_str
+        )
+        
+        # 캐시 Hit/Miss 판별 (5초 경과 여부 기준)
+        now = datetime.datetime.now().timestamp()
+        is_hit = (now - res["fetched_at"]) > 5.0
+        
+        st.session_state["last_api_status"] = {
+            "url": url,
+            "is_hit": is_hit,
+            "fetched_at": res["fetched_at"]
+        }
+        return {"status": "success", "data": res["data"]}
+        
+    except RuntimeError as e:
+        err_msg = str(e)
+        if err_msg.startswith("HTTP_ERROR:"):
+            parts = err_msg.split(":", 2)
+            status_code = int(parts[1])
+            try:
+                error_info = json.loads(parts[2])
+            except:
+                error_info = {}
+            
+            err_msg_content = error_info.get("errorMessage", "알 수 없는 오류가 발생했습니다.")
             err_code = error_info.get("errorCode", "UNKNOWN")
             
             if status_code == 400:
-                msg = f"잘못된 요청 파라미터입니다. (에러코드: {err_code}, 메시지: {err_msg})"
+                msg = f"잘못된 요청 파라미터입니다. (에러코드: {err_code}, 메시지: {err_msg_content})"
             elif status_code == 401:
                 msg = "인증 실패: Client ID 및 Client Secret을 다시 확인해 주세요."
             elif status_code == 403:
@@ -85,11 +138,11 @@ def fetch_naver_api(url, headers, params=None, method="GET", json_data=None):
             elif status_code == 429:
                 msg = "호출 한도 초과: 오늘 사용 가능한 호출 할당량을 모두 소진했습니다."
             else:
-                msg = f"오류 발생 (HTTP {status_code}): {err_msg}"
+                msg = f"오류 발생 (HTTP {status_code}): {err_msg_content}"
             return {"status": "error", "message": msg}
-            
-    except requests.exceptions.RequestException as e:
-        return {"status": "error", "message": f"네트워크 통신 중 요류가 발생했습니다: {str(e)}"}
+        else:
+            msg = err_msg.split(":", 1)[-1]
+            return {"status": "error", "message": f"네트워크 통신 중 오류가 발생했습니다: {msg}"}
 
 # -----------------------------------------------------------------------------
 # 사이드바 입력 제어 영역 (API Key & 검색 파라미터)
@@ -148,6 +201,12 @@ start_date = st.sidebar.date_input("조회 시작일", value=last_month, max_val
 end_date = st.sidebar.date_input("조회 종료일", value=today, min_value=start_date, max_value=today)
 
 st.sidebar.markdown("---")
+
+if st.sidebar.button("🔄 데이터 새로고침 (캐시 초기화)", use_container_width=True):
+    st.cache_data.clear()
+    st.toast("캐시가 성공적으로 초기화되었습니다!", icon="🔄")
+    st.rerun()
+
 st.sidebar.info("💡 **가이드**: 인증 정보를 입력하고 분석 키워드 및 쇼핑 카테고리를 지정하면 실시간 네이버 OpenAPI 데이터를 수집하고 시각화합니다.")
 
 # -----------------------------------------------------------------------------
@@ -186,6 +245,16 @@ selected_tab = st.tabs(tab_names)
 
 # 분석용 대표 키워드 선택 (쇼핑, 블로그, 카페, 뉴스 등 단일 키워드 쿼리용)
 selected_kw = st.selectbox("🎯 세부 분석 대상 키워드 선택", options=keywords)
+
+# 마지막 API 호출에 대한 캐시 상태 안내 UI
+if "last_api_status" in st.session_state:
+    status_info = st.session_state["last_api_status"]
+    dt = datetime.datetime.fromtimestamp(status_info["fetched_at"])
+    time_str = dt.strftime("%H:%M:%S")
+    if status_info["is_hit"]:
+        st.info(f"💡 **캐시 데이터 사용 중**: 최근 1시간 이내에 캐싱된 데이터를 표시하고 있습니다. (마지막 수집 시간: {time_str})")
+    else:
+        st.success(f"🔄 **실시간 데이터 로드 완료**: 원격 네이버 API를 통해 실시간 데이터를 직접 호출했습니다. (수집 시간: {time_str})")
 
 # -----------------------------------------------------------------------------
 # Tab 1: 검색어 트렌드 (데이터랩)
