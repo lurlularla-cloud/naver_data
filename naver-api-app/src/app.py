@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (Streamlit 네이티브 헤더 렌더링으로 폰트 깨짐 완벽 방지)
+      (제목 폰트 크기 20% 축소 및 모던 레이아웃 적용)
 """
 
 import streamlit as st
@@ -51,7 +51,7 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 커스텀 스타일
+# 2. 페이지 설정 및 커스텀 스타일 (제목 20% 축소 반영)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -65,6 +65,16 @@ st.markdown("""
     .block-container { 
         padding-top: 1.5rem !important; 
         padding-bottom: 3rem; 
+    }
+    
+    /* 제목 크기 20% 축소: 2.2rem -> 1.55rem */
+    h1 {
+        font-size: 1.55rem !important;
+        font-weight: 800 !important;
+        color: #191F28 !important;
+        padding-bottom: 0px !important;
+        margin-bottom: 4px !important;
+        line-height: 1.3 !important;
     }
     
     /* 입체형 KPI 카드 */
@@ -245,7 +255,7 @@ with st.sidebar:
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 5. 헤더 (Streamlit 네이티브 렌더링으로 폰트 깨짐 방지)
+# 5. 헤더 (20% 축소 폰트 및 네이티브 컴포넌트 렌더링)
 # -----------------------------------------------------------------------------
 col_head1, col_head2 = st.columns([3, 1])
 with col_head1:
@@ -254,8 +264,8 @@ with col_head1:
 
 with col_head2:
     st.markdown(f"""
-        <div style="text-align: right; padding-top: 15px;">
-            <span style="background-color: #E8F3FF; color: #1B64DA; font-size: 0.85rem; font-weight: 700; padding: 8px 14px; border-radius: 20px; border: 1px solid #B5D4FE; display: inline-block;">
+        <div style="text-align: right; padding-top: 10px;">
+            <span style="background-color: #E8F3FF; color: #1B64DA; font-size: 0.82rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; border: 1px solid #B5D4FE; display: inline-block;">
                 🔄 매일 09:00 업데이트 ({last_update_str})
             </span>
         </div>
