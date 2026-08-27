@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (모바일 완벽 반응형 CSS 및 매일 아침 9시 KST 기준 자동 갱신 적용)
+      (Streamlit 네이티브 헤더 렌더링으로 폰트 깨짐 완벽 방지)
 """
 
 import streamlit as st
@@ -51,7 +51,7 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 모바일 반응형 커스텀 스타일
+# 2. 페이지 설정 및 커스텀 스타일
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -62,74 +62,9 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    html, body, [class*="css"] {
-        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", Roboto, sans-serif !important;
-    }
-    
     .block-container { 
-        padding-top: 1.8rem !important; 
+        padding-top: 1.5rem !important; 
         padding-bottom: 3rem; 
-    }
-    
-    /* 상단 헤더 컨테이너 (PC 기본) */
-    .header-box {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        border-bottom: 1px solid #E5E8EB;
-        padding-bottom: 1.2rem;
-        margin-bottom: 1.5rem;
-        gap: 15px;
-    }
-    
-    .title-main {
-        font-size: 1.85rem;
-        font-weight: 800;
-        color: #191F28;
-        line-height: 1.4 !important;
-        margin: 0;
-        padding: 2px 0;
-        letter-spacing: -0.5px;
-        word-break: keep-all; /* 단어 단위 줄바꿈으로 한 글자씩 떨어짐 방지 */
-    }
-    
-    .title-sub {
-        color: #6B7684;
-        font-size: 0.95rem;
-        font-weight: 500;
-        margin-top: 6px;
-        line-height: 1.4;
-        word-break: keep-all;
-    }
-    
-    .header-badge {
-        background-color: #E8F3FF;
-        color: #1B64DA;
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding: 8px 16px;
-        border-radius: 20px;
-        border: 1px solid #B5D4FE;
-        white-space: nowrap;
-        margin-top: 4px;
-        flex-shrink: 0; /* 배지가 줄어들거나 찌그러지는 것 방지 */
-    }
-    
-    /* 📱 모바일 화면 대응 미디어 쿼리 (가로 768px 이하) */
-    @media (max-width: 768px) {
-        .header-box {
-            flex-direction: column !important; /* 모바일에서는 세로로 배치 */
-            align-items: flex-start !important;
-            gap: 10px !important;
-        }
-        .title-main {
-            font-size: 1.45rem !important; /* 모바일에 맞춘 폰트 크기 조정 */
-        }
-        .header-badge {
-            margin-top: 6px !important;
-            font-size: 0.78rem !important;
-            padding: 5px 12px !important;
-        }
     }
     
     /* 입체형 KPI 카드 */
@@ -310,23 +245,28 @@ with st.sidebar:
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 5. 헤더 및 검색광고 / 데이터랩 기본 데이터 수집
+# 5. 헤더 (Streamlit 네이티브 렌더링으로 폰트 깨짐 방지)
 # -----------------------------------------------------------------------------
-st.markdown(f"""
-    <div class="header-box">
-        <div>
-            <div class="title-main">🌸 생리대 브랜드별 네이버 분석 대시보드</div>
-            <div class="title-sub">라엘 및 주요 경쟁사(좋은느낌, 화이트, 이너시아, 디어스킨) 시장 점유율 & 소셜 행동 분석</div>
+col_head1, col_head2 = st.columns([3, 1])
+with col_head1:
+    st.title("🌸 생리대 브랜드별 네이버 분석 대시보드")
+    st.caption("라엘 및 주요 경쟁사(좋은느낌, 화이트, 이너시아, 디어스킨) 시장 점유율 & 소셜 행동 분석")
+
+with col_head2:
+    st.markdown(f"""
+        <div style="text-align: right; padding-top: 15px;">
+            <span style="background-color: #E8F3FF; color: #1B64DA; font-size: 0.85rem; font-weight: 700; padding: 8px 14px; border-radius: 20px; border: 1px solid #B5D4FE; display: inline-block;">
+                🔄 매일 09:00 업데이트 ({last_update_str})
+            </span>
         </div>
-        <div class="header-badge">
-            🔄 매일 09:00 정기 업데이트 (기준: {last_update_str})
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+st.divider()
 
 headers_get = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
 headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
 
+# 1. 검색광고 API 데이터 수집
 ads_dict = {}
 rel_keywords_list = []
 
@@ -355,6 +295,7 @@ if ads_customer_id and ads_api_key and ads_secret_key:
                     "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
                 })
 
+# 2. 데이터랩 검색 트렌드 (현재 기간 + 전기 비교 데이터)
 query_days = (end_date - start_date).days + 1
 prev_end_date = start_date - datetime.timedelta(days=1)
 prev_start_date = prev_end_date - datetime.timedelta(days=query_days - 1)
