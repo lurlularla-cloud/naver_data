@@ -1,7 +1,7 @@
 """
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
-      생리대/위생용품 브랜드·경쟁사 종합 인텔리전스 전략 대시보드
+      생리대 브랜드별 네이버 분석 대시보드
       (매일 아침 9시 KST 기준 자동 갱신 및 캐시 동기화 적용)
 """
 
@@ -53,10 +53,10 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 모던 SaaS 스타일 CSS
+# 2. 페이지 설정 및 모던 SaaS 스타일 CSS (폰트 잘림 방지 최적화)
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="위생용품 브랜드 인텔리전스 대시보드",
+    page_title="생리대 브랜드별 네이버 분석 대시보드",
     page_icon="🌸",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -69,27 +69,75 @@ st.markdown("""
     
     .block-container { padding-top: 1.8rem; padding-bottom: 3rem; }
     
-    /* 헤더 */
+    /* 헤더 스타일 - 폰트 깨짐 및 위아래 잘림 완벽 해결 */
     .header-container {
-        display: flex; justify-content: space-between; align-items: center;
-        border-bottom: 1px solid #EDEDF0; padding-bottom: 1rem; margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #EDEDF0;
+        padding-bottom: 1.2rem;
+        margin-bottom: 1.5rem;
     }
-    .header-title { font-size: 1.85rem; font-weight: 800; color: #191F28; display: flex; align-items: center; gap: 10px; }
+    .header-title {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #191F28;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        line-height: 1.4 !important;
+        padding: 4px 0;
+        letter-spacing: -0.5px;
+    }
     .header-badge {
-        background-color: #E8F3FF; color: #1B64DA; font-size: 0.85rem; font-weight: 700;
-        padding: 6px 14px; border-radius: 20px; border: 1px solid #B5D4FE;
+        background-color: #E8F3FF;
+        color: #1B64DA;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid #B5D4FE;
+        white-space: nowrap;
     }
     
     /* 입체형 KPI 카드 */
     .kpi-card {
-        background: #FFFFFF; border: 1px solid #E5E8EB; border-radius: 16px;
-        padding: 18px 20px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-        transition: transform 0.2s ease, box-shadow 0.2s ease; margin-bottom: 1rem;
+        background: #FFFFFF;
+        border: 1px solid #E5E8EB;
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 1rem;
     }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
-    .kpi-brand-title { font-size: 0.95rem; font-weight: 600; color: #8B95A1; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .kpi-brand-value { font-size: 1.7rem; font-weight: 800; color: #191F28; letter-spacing: -0.5px; }
-    .kpi-brand-sub { margin-top: 8px; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .kpi-brand-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #8B95A1;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .kpi-brand-value {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: #191F28;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+    }
+    .kpi-brand-sub {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
     
     .badge-primary { background-color: #E8F3FF; color: #1B64DA; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; }
     .badge-highlight { background-color: #FFF0F1; color: #F04452; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; }
@@ -97,8 +145,15 @@ st.markdown("""
     
     /* 인사이트 박스 */
     .insight-box {
-        background-color: #F8FAFC; border-left: 4px solid #1B64DA; border-radius: 0 8px 8px 0;
-        padding: 14px 18px; margin-top: 15px; margin-bottom: 20px; font-size: 0.92rem; color: #333D4B; line-height: 1.6;
+        background-color: #F8FAFC;
+        border-left: 4px solid #1B64DA;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 18px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+        font-size: 0.92rem;
+        color: #333D4B;
+        line-height: 1.6;
     }
     .insight-box strong { color: #191F28; }
 
@@ -227,7 +282,7 @@ with st.sidebar:
 st.markdown(f"""
     <div class="header-container">
         <div>
-            <div class="header-title">🌸 위생용품 브랜드 인텔리전스 대시보드</div>
+            <div class="header-title">🌸 생리대 브랜드별 네이버 분석 대시보드</div>
             <div style="color: #6B7684; font-size: 0.95rem; margin-top: 4px;">
                 라엘 및 주요 경쟁사(좋은느낌, 화이트, 이너시아, 디어스킨) 시장 점유율 & 소셜 행동 분석
             </div>
@@ -283,7 +338,6 @@ datalab_body = {
 }
 res_dl = fetch_naver_api("https://openapi.naver.com/v1/datalab/search", headers=headers_post, method="POST", json_data=datalab_body)
 
-# 전기 비교용 데이터랩 호출
 prev_datalab_body = {
     "startDate": prev_start_date.strftime("%Y-%m-%d"),
     "endDate": prev_end_date.strftime("%Y-%m-%d"),
