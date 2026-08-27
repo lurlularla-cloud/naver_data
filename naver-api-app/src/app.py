@@ -35,7 +35,6 @@ load_dotenv(dotenv_path=env_path)
 KST = datetime.timezone(datetime.timedelta(hours=9))
 now_kst = datetime.datetime.now(KST)
 
-# 오전 9시 이전 접속 시 전날 9시 기준 데이터, 오전 9시 이후는 당일 9시 기준 데이터로 동기화
 if now_kst.hour < 9:
     base_date = now_kst.date() - datetime.timedelta(days=1)
     last_update_str = f"{(now_kst.date() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')} 09:00 KST"
@@ -46,14 +45,13 @@ else:
 today = base_date
 last_month = today - datetime.timedelta(days=30)
 
-# 다음날(혹은 당일) 오전 9시까지 남은 초(초 단위 TTL) 계산
 next_9am = datetime.datetime(now_kst.year, now_kst.month, now_kst.day, 9, 0, 0, tzinfo=KST)
 if now_kst >= next_9am:
     next_9am += datetime.timedelta(days=1)
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 모던 SaaS 스타일 CSS (폰트 잘림 방지 최적화)
+# 2. 페이지 설정 및 모던 SaaS 스타일 CSS (폰트 클리핑 방지)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -64,40 +62,57 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    * { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    /* 기본 시스템 폰트 지정 (폰트 로딩 깨짐 방지) */
+    html, body, [class*="css"] {
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", Roboto, sans-serif !important;
+    }
     
-    .block-container { padding-top: 1.8rem; padding-bottom: 3rem; }
+    .block-container { 
+        padding-top: 2rem !important; 
+        padding-bottom: 3rem; 
+    }
     
-    /* 헤더 스타일 - 폰트 깨짐 및 위아래 잘림 완벽 해결 */
-    .header-container {
+    /* 상단 헤더 컨테이너 */
+    .header-box {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid #EDEDF0;
+        align-items: flex-start;
+        border-bottom: 1px solid #E5E8EB;
         padding-bottom: 1.2rem;
         margin-bottom: 1.5rem;
+        overflow: visible !important;
     }
-    .header-title {
+    
+    .title-main {
         font-size: 1.85rem;
         font-weight: 800;
         color: #191F28;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        line-height: 1.4 !important;
-        padding: 4px 0;
+        line-height: 1.6 !important;
+        margin: 0;
+        padding: 6px 0;
         letter-spacing: -0.5px;
+        display: block;
+        overflow: visible !important;
     }
+    
+    .title-sub {
+        color: #6B7684;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+    
     .header-badge {
         background-color: #E8F3FF;
         color: #1B64DA;
         font-size: 0.85rem;
         font-weight: 700;
-        padding: 6px 14px;
+        padding: 8px 16px;
         border-radius: 20px;
         border: 1px solid #B5D4FE;
         white-space: nowrap;
+        margin-top: 4px;
     }
     
     /* 입체형 KPI 카드 */
@@ -280,12 +295,10 @@ with st.sidebar:
 # 5. 헤더 및 검색광고 / 데이터랩 기본 데이터 수집
 # -----------------------------------------------------------------------------
 st.markdown(f"""
-    <div class="header-container">
+    <div class="header-box">
         <div>
-            <div class="header-title">🌸 생리대 브랜드별 네이버 분석 대시보드</div>
-            <div style="color: #6B7684; font-size: 0.95rem; margin-top: 4px;">
-                라엘 및 주요 경쟁사(좋은느낌, 화이트, 이너시아, 디어스킨) 시장 점유율 & 소셜 행동 분석
-            </div>
+            <div class="title-main">🌸 생리대 브랜드별 네이버 분석 대시보드</div>
+            <div class="title-sub">라엘 및 주요 경쟁사(좋은느낌, 화이트, 이너시아, 디어스킨) 시장 점유율 & 소셜 행동 분석</div>
         </div>
         <div class="header-badge">
             🔄 매일 09:00 정기 업데이트 (기준: {last_update_str})
@@ -362,7 +375,6 @@ if res_dl["status"] == "success":
         data_pts = g.get("data", [])
         sum_ratio = sum(dp["ratio"] for dp in data_pts) if data_pts else 1
         
-        # 전주 대비(최근 7일 vs 직전 7일) 증감률 계산
         if len(data_pts) >= 14:
             recent_7d = sum(dp["ratio"] for dp in data_pts[-7:])
             prev_7d = sum(dp["ratio"] for dp in data_pts[-14:-7])
@@ -370,7 +382,6 @@ if res_dl["status"] == "success":
         else:
             wow_rate = 0.0
 
-        # 전기 대비 증감률 계산
         prev_sum_ratio = 1
         if prev_results and len(prev_results) > g_idx:
             prev_pts = prev_results[g_idx].get("data", [])
@@ -472,7 +483,6 @@ with tab1:
             fig_dev.update_layout(margin=dict(t=20, b=20, l=10, r=10), legend=dict(orientation="h", y=1.1, x=0.75), hovermode="x unified")
             st.plotly_chart(fig_dev, use_container_width=True)
 
-    # 상세 비교 테이블
     st.markdown("#### 📋 브랜드별 최근 30일 검색량 및 전주/전기 대비 증감 세부 현황")
     sov_detail_table = []
     for k, v in ads_dict.items():
