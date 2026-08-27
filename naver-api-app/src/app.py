@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (매일 아침 9시 KST 기준 자동 갱신 및 캐시 동기화 적용)
+      (모바일 완벽 반응형 CSS 및 매일 아침 9시 KST 기준 자동 갱신 적용)
 """
 
 import streamlit as st
@@ -51,7 +51,7 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 모던 SaaS 스타일 CSS (폰트 클리핑 방지)
+# 2. 페이지 설정 및 모바일 반응형 커스텀 스타일
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -62,17 +62,16 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    /* 기본 시스템 폰트 지정 (폰트 로딩 깨짐 방지) */
     html, body, [class*="css"] {
         font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", Roboto, sans-serif !important;
     }
     
     .block-container { 
-        padding-top: 2rem !important; 
+        padding-top: 1.8rem !important; 
         padding-bottom: 3rem; 
     }
     
-    /* 상단 헤더 컨테이너 */
+    /* 상단 헤더 컨테이너 (PC 기본) */
     .header-box {
         display: flex;
         justify-content: space-between;
@@ -80,27 +79,27 @@ st.markdown("""
         border-bottom: 1px solid #E5E8EB;
         padding-bottom: 1.2rem;
         margin-bottom: 1.5rem;
-        overflow: visible !important;
+        gap: 15px;
     }
     
     .title-main {
         font-size: 1.85rem;
         font-weight: 800;
         color: #191F28;
-        line-height: 1.6 !important;
+        line-height: 1.4 !important;
         margin: 0;
-        padding: 6px 0;
+        padding: 2px 0;
         letter-spacing: -0.5px;
-        display: block;
-        overflow: visible !important;
+        word-break: keep-all; /* 단어 단위 줄바꿈으로 한 글자씩 떨어짐 방지 */
     }
     
     .title-sub {
         color: #6B7684;
         font-size: 0.95rem;
         font-weight: 500;
-        margin-top: 4px;
+        margin-top: 6px;
         line-height: 1.4;
+        word-break: keep-all;
     }
     
     .header-badge {
@@ -113,6 +112,24 @@ st.markdown("""
         border: 1px solid #B5D4FE;
         white-space: nowrap;
         margin-top: 4px;
+        flex-shrink: 0; /* 배지가 줄어들거나 찌그러지는 것 방지 */
+    }
+    
+    /* 📱 모바일 화면 대응 미디어 쿼리 (가로 768px 이하) */
+    @media (max-width: 768px) {
+        .header-box {
+            flex-direction: column !important; /* 모바일에서는 세로로 배치 */
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+        .title-main {
+            font-size: 1.45rem !important; /* 모바일에 맞춘 폰트 크기 조정 */
+        }
+        .header-badge {
+            margin-top: 6px !important;
+            font-size: 0.78rem !important;
+            padding: 5px 12px !important;
+        }
     }
     
     /* 입체형 KPI 카드 */
@@ -169,6 +186,7 @@ st.markdown("""
         font-size: 0.92rem;
         color: #333D4B;
         line-height: 1.6;
+        word-break: keep-all;
     }
     .insight-box strong { color: #191F28; }
 
@@ -179,7 +197,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 3. API 호출 유틸리티 함수 (매일 9시 만료 TTL 적용)
+# 3. API 호출 유틸리티 함수
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=seconds_until_next_9am)
 def _fetch_naver_api_cached(url, client_id, client_secret, params_tuple=None, method="GET", json_data_str=None):
@@ -309,7 +327,6 @@ st.markdown(f"""
 headers_get = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
 headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
 
-# 1. 검색광고 API 데이터 수집
 ads_dict = {}
 rel_keywords_list = []
 
@@ -338,7 +355,6 @@ if ads_customer_id and ads_api_key and ads_secret_key:
                     "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
                 })
 
-# 2. 데이터랩 검색 트렌드 (현재 기간 + 전기 비교 데이터)
 query_days = (end_date - start_date).days + 1
 prev_end_date = start_date - datetime.timedelta(days=1)
 prev_start_date = prev_end_date - datetime.timedelta(days=query_days - 1)
@@ -401,7 +417,7 @@ if res_dl["status"] == "success":
     df_daily_trend = pd.DataFrame(trend_rows)
 
 # -----------------------------------------------------------------------------
-# 6. 상단 Top KPI Cards (증감률 반영)
+# 6. 상단 Top KPI Cards
 # -----------------------------------------------------------------------------
 total_sum_vol = sum(v["total"] for v in ads_dict.values()) if ads_dict else 0
 card_cols = st.columns(len(keywords))
@@ -582,7 +598,7 @@ with tab2:
         """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# Tab 3: 쇼핑 클릭 & 타깃 분석 (호버 툴팁 + 데모그래픽)
+# Tab 3: 쇼핑 클릭 & 타깃 분석
 # -----------------------------------------------------------------------------
 with tab3:
     st.markdown(f"#### 🛒 [{selected_category}] 쇼핑 탐색 트렌드 및 타깃 데모그래픽 분석")
