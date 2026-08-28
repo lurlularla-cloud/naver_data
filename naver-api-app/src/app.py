@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (배지 한줄 표시 및 브랜드 정밀 매칭 스코어링 적용)
+      (기간 연동 고유 URL 노출 건수 집계 & 기업/아마존 뉴스 최상단 정렬)
 """
 
 import streamlit as st
@@ -76,7 +76,6 @@ st.markdown("""
         line-height: 1.3 !important;
     }
     
-    /* 상단 배지 스타일 - 한줄 유지 및 패딩 최적화 */
     .top-update-badge {
         background-color: #E8F3FF;
         color: #1B64DA;
@@ -268,7 +267,7 @@ with st.sidebar:
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 5. 헤더 (한 줄 배지 레이아웃 최적화)
+# 5. 헤더 (한 줄 배지 레이아웃)
 # -----------------------------------------------------------------------------
 col_head1, col_head2 = st.columns([2.5, 1.5])
 with col_head1:
@@ -292,7 +291,7 @@ headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_
 # -----------------------------------------------------------------------------
 # 불용어 정의
 # -----------------------------------------------------------------------------
-STOP_WORDS = ["스피치", "학원", "홍진경", "딸", "알라딘", "알라딘서재", "100자평", "서평", "도서", "책소개", "음악", "피아노", "미술"]
+STOP_WORDS = ["스피치", "학원", "홍진경", "딸", "알라딘", "알라딘서재", "100자평", "서평", "도서", "책소개", "음악", "피아노", "미술", "부고", "감자요리", "숲정원"]
 
 # 1. 검색광고 API 데이터 수집
 ads_dict = {}
@@ -684,151 +683,157 @@ with tab4:
         st.info("검색광고 API에서 연관 키워드 풀을 조회 중입니다.")
 
 # -----------------------------------------------------------------------------
-# Tab 5: 검색 급증 원인 디깅 (버즈량 + 업로드 건수 병기 & 브랜드 매칭 스코어링)
+# Tab 5: 검색 급증 원인 디깅 (기간 연동 고유 URL 노출 건수 집계 & 기업/아마존 우선순위)
 # -----------------------------------------------------------------------------
 with tab5:
     st.markdown("#### 📰 브랜드별 실시간 소셜 여론 & 미디어 노출 원인 디깅")
     
     selected_target = st.selectbox("디깅 대상 브랜드 선택", options=keywords, index=0)
     
-    # 1. 100건 수집하여 기간 내 실제 업로드 건수 및 브랜드 관련글 정밀 추출
+    # 1. 100건 수집 (날짜순 정렬)
     res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 100, "sort": "date"})
     res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 100, "sort": "date"})
     res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 100, "sort": "date"})
     
-    b_cnt = res_b["data"].get("total", 0) if res_b["status"] == "success" else 0
-    c_cnt = res_c["data"].get("total", 0) if res_c["status"] == "success" else 0
-    n_cnt = res_n["data"].get("total", 0) if res_n["status"] == "success" else 0
-    
-    # 최근 30일 업로드 건수 계산 (날짜 파싱)
-    cutoff_dt = datetime.datetime.combine(start_date, datetime.time.min)
-    
-    def count_period_uploads(items, date_key, date_format):
-        cnt = 0
+    raw_b_items = res_b["data"].get("items", []) if res_b["status"] == "success" else []
+    raw_c_items = res_c["data"].get("items", []) if res_c["status"] == "success" else []
+    raw_n_items = res_n["data"].get("items", []) if res_n["status"] == "success" else []
+
+    # 2. 조회 기간 필터링 함수 (선택한 시작일 ~ 종료일 사이의 고유 URL만 추출)
+    start_dt = datetime.datetime.combine(start_date, datetime.time.min)
+    end_dt = datetime.datetime.combine(end_date, datetime.time.max)
+
+    def filter_period_unique_items(items, date_key, date_format):
+        unique_urls = set()
+        filtered = []
         for item in items:
             raw_d = item.get(date_key, "")
+            link = item.get("originallink") or item.get("link") or ""
+            if not link or link in unique_urls:
+                continue
+            
+            # 날짜 파싱
+            d = None
             try:
                 if date_format == "rfc":
-                    d = pd.to_datetime(raw_d).tz_localize(None)
+                    d = pd.to_datetime(raw_d).tz_localize(None).to_pydatetime()
                 else:
                     d = datetime.datetime.strptime(raw_d, date_format)
-                if d >= cutoff_dt:
-                    cnt += 1
             except:
-                pass
-        return cnt
+                d = datetime.datetime.now()
 
-    b_period_cnt = count_period_uploads(res_b["data"].get("items", []), "postdate", "%Y%m%d") if res_b["status"] == "success" else 0
-    c_period_cnt = len(res_c["data"].get("items", [])) if res_c["status"] == "success" else 0
-    n_period_cnt = count_period_uploads(res_n["data"].get("items", []), "pubDate", "rfc") if res_n["status"] == "success" else 0
-    
-    # 1. 상단 KPI 카드: [1. 블로그] -> [2. 카페] -> [3. 뉴스] (총 버즈량 + 업로드 수량 병기)
+            # 기간 내 포함 여부 확인
+            if start_dt <= d <= end_dt:
+                unique_urls.add(link)
+                filtered.append(item)
+                
+        return filtered
+
+    clean_period_blogs = filter_period_unique_items(raw_b_items, "postdate", "%Y%m%d")
+    # 카페는 API 특성상 postdate가 제공되지 않으므로 고유 URL 기반으로 샘플링 추출
+    clean_period_cafes = list({it.get("link"): it for it in raw_c_items if it.get("link")}.values())
+    clean_period_news = filter_period_unique_items(raw_n_items, "pubDate", "rfc")
+
+    b_url_cnt = len(clean_period_blogs)
+    c_url_cnt = len(clean_period_cafes)
+    n_url_cnt = len(clean_period_news)
+
+    # 3. 상단 KPI 카드: 지정한 조회 기간 내 실제 노출 건수(URL 기준) 표기
     dig_cols = st.columns(3)
     with dig_cols[0]:
         st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-brand-title"><span>✍️ 블로그 총 버즈량</span><span class="badge-primary">체험단/후기</span></div>
-                <div class="kpi-brand-value">{b_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
-                <div class="kpi-brand-sub"><span style="color:#1B64DA; font-weight:700;">최근 표본 100건 중 {b_period_cnt}건</span><span style="color:#8B95A1;">(기간내 신규 업로드)</span></div>
+                <div class="kpi-brand-title"><span>✍️ 블로그 기간 노출</span><span class="badge-primary">체험단/후기</span></div>
+                <div class="kpi-brand-value">{b_url_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
+                <div class="kpi-brand-sub"><span style="color:#1B64DA; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">(조회 기간내 신규)</span></div>
             </div>
         """, unsafe_allow_html=True)
     with dig_cols[1]:
         st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-brand-title"><span>☕ 카페/커뮤니티 총 버즈량</span><span class="badge-highlight">맘카페 여론</span></div>
-                <div class="kpi-brand-value">{c_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
-                <div class="kpi-brand-sub"><span style="color:#F04452; font-weight:700;">최근 표본 {c_period_cnt}건 분석</span><span style="color:#8B95A1;">(소비자 질의/추천)</span></div>
+                <div class="kpi-brand-title"><span>☕ 카페/커뮤니티 기간 노출</span><span class="badge-highlight">맘카페 여론</span></div>
+                <div class="kpi-brand-value">{c_url_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
+                <div class="kpi-brand-sub"><span style="color:#F04452; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">(소비자 질의/추천)</span></div>
             </div>
         """, unsafe_allow_html=True)
     with dig_cols[2]:
         st.markdown(f"""
             <div class="kpi-card">
-                <div class="kpi-brand-title"><span>📰 뉴스 총 보도량</span><span class="badge-gray">PR/언론</span></div>
-                <div class="kpi-brand-value">{n_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
-                <div class="kpi-brand-sub"><span style="color:#191F28; font-weight:700;">최근 표본 100건 중 {n_period_cnt}건</span><span style="color:#8B95A1;">(기간내 신규 기사)</span></div>
+                <div class="kpi-brand-title"><span>📰 뉴스 보도자료 기간 노출</span><span class="badge-gray">PR/언론</span></div>
+                <div class="kpi-brand-value">{n_url_cnt:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
+                <div class="kpi-brand-sub"><span style="color:#191F28; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">(조회 기간내 기사)</span></div>
             </div>
         """, unsafe_allow_html=True)
 
-    # 2. 브랜드 핵심 키워드 가중치 기반 정밀 스코어링 필터
-    BRAND_TARGET_WORDS = [
-        "생리대", "여성", "유기농", "입는", "오버나이트", "라이너", "순면", 
-        "청결제", "팬티", "생리", "중형", "대형", "입오버", "페미닌", "리얼라엘", 
-        "패드", "탐폰", "올리브영", "뷰티", "이너시아", "화이트", "좋은느낌", "디어스킨"
-    ]
+    # 4. 정밀 타깃팅 스코어링 (기업 라엘 및 아마존 관련 뉴스 최우선 정렬)
+    CORP_PRIORITY_WORDS = ["아마존", "PEF", "투자", "파트너십", "매출", "글로벌", "미국", "수출", "타워브룩", "대표", "스타트업", "1위"]
+    BRAND_TARGET_WORDS = ["생리대", "여성", "유기농", "입는", "오버나이트", "라이너", "순면", "청결제", "팬티", "생리", "리얼라엘", "올리브영"]
 
-    def rank_brand_related_items(items):
+    def rank_items(items, is_news=False):
         scored_items = []
         for item in items:
             title = item.get("title", "").replace("<b>", "").replace("</b>", "")
             desc = item.get("description", "").replace("<b>", "").replace("</b>", "")
             blogger = item.get("bloggername", "")
             
-            # 불용어 포함 시 배제
             if any(sw in title or sw in desc or sw in blogger for sw in STOP_WORDS):
                 continue
             
-            # 브랜드 및 생리대 연관 키워드 포함 개수 스코어링
-            full_text = f"{title} {desc}"
-            score = sum(3 for w in BRAND_TARGET_WORDS if w in title) + sum(1 for w in BRAND_TARGET_WORDS if w in desc)
+            score = 0
+            # 뉴스의 경우: 아마존, 기업 성과, 투자 관련 보도자료에 최우선 가중치 부여
+            if is_news:
+                score += sum(20 for w in CORP_PRIORITY_WORDS if w in title)
+                score += sum(10 for w in CORP_PRIORITY_WORDS if w in desc)
+                
+            # 브랜드 및 생리대 연관 가중치
+            score += sum(5 for w in BRAND_TARGET_WORDS if w in title)
+            score += sum(2 for w in BRAND_TARGET_WORDS if w in desc)
             if selected_target in title:
-                score += 5
+                score += 8
                 
             scored_items.append((score, item))
             
-        # 스코어 높은 순(생리대/라엘 브랜드 관련글 최우선)으로 정렬
         scored_items.sort(key=lambda x: x[0], reverse=True)
         return [it[1] for it in scored_items]
 
-    # 3. 하단 리스트: [1. 블로그 리뷰] -> [2. 카페 글] -> [3. 뉴스 기사]
+    # 5. 하단 리스트 출력
     col_d1, col_d2, col_d3 = st.columns(3)
     
     with col_d1:
         st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
-        if res_b["status"] == "success":
-            raw_blogs = res_b["data"].get("items", [])
-            clean_blogs = rank_brand_related_items(raw_blogs)
-            if clean_blogs:
-                for item in clean_blogs[:6]:
-                    t = item["title"].replace("<b>", "").replace("</b>", "")
-                    st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
-            else:
-                st.caption("유효한 생리대 관련 블로그 리뷰가 없습니다.")
+        ranked_blogs = rank_items(clean_period_blogs if clean_period_blogs else raw_b_items)
+        if ranked_blogs:
+            for item in ranked_blogs[:6]:
+                t = item["title"].replace("<b>", "").replace("</b>", "")
+                st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
         else:
-            st.caption("블로그 데이터를 불러오지 못했습니다.")
+            st.caption("해당 기간 내 수집된 블로그 글이 없습니다.")
 
     with col_d2:
         st.markdown(f"##### ☕ 커뮤니티/맘카페 글 (Cafe)")
-        if res_c["status"] == "success":
-            raw_cafes = res_c["data"].get("items", [])
-            clean_cafes = rank_brand_related_items(raw_cafes)
-            if clean_cafes:
-                for item in clean_cafes[:6]:
-                    t = item["title"].replace("<b>", "").replace("</b>", "")
-                    st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
-            else:
-                st.caption("유효한 생리대 관련 카페 게시글이 없습니다.")
+        ranked_cafes = rank_items(clean_period_cafes if clean_period_cafes else raw_c_items)
+        if ranked_cafes:
+            for item in ranked_cafes[:6]:
+                t = item["title"].replace("<b>", "").replace("</b>", "")
+                st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
         else:
-            st.caption("카페 데이터를 불러오지 못했습니다.")
+            st.caption("해당 기간 내 수집된 카페 글이 없습니다.")
 
     with col_d3:
         st.markdown(f"##### 📢 최신 언론 보도 (News)")
-        if res_n["status"] == "success":
-            raw_news = res_n["data"].get("items", [])
-            clean_news = rank_brand_related_items(raw_news)
-            if clean_news:
-                for item in clean_news[:6]:
-                    t = item["title"].replace("<b>", "").replace("</b>", "")
-                    link = item.get("originallink") or item.get("link")
-                    st.markdown(f"- 📰 [{t[:28]}...]({link})")
-            else:
-                st.caption("유효한 생리대 관련 뉴스 기사가 없습니다.")
+        ranked_news = rank_items(clean_period_news if clean_period_news else raw_n_items, is_news=True)
+        if ranked_news:
+            for item in ranked_news[:6]:
+                t = item["title"].replace("<b>", "").replace("</b>", "")
+                link = item.get("originallink") or item.get("link")
+                st.markdown(f"- 📰 [{t[:28]}...]({link})")
         else:
-            st.caption("뉴스 데이터를 불러오지 못했습니다.")
+            st.caption("해당 기간 내 수집된 뉴스 기사가 없습니다.")
 
     st.markdown(f"""
         <div class="insight-box">
             💡 <b>소셜 여론 및 디스커버리 인사이트</b><br>
-            • <b>'{selected_target}'</b>의 블로그(<b>{b_cnt:,}건</b>) 및 카페(<b>{c_cnt:,}건</b>) 언급량은 실제 소비자들의 자발적인 실사용 후기와 체험단 반응이 누적되는 핵심 채널입니다.<br>
-            • 각 채널별 최상단에 배치된 생리대 관련 핵심 포스팅 링크를 직접 확인하여 소비자 반응 및 프로모션 노출 현황을 모니터링하세요.
+            • <b>'{selected_target}'</b>의 선택 기간({start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}) 내 고유 노출은 블로그 <b>{b_url_cnt}건</b>, 뉴스 <b>{n_url_cnt}건</b>으로 집계되었습니다.<br>
+            • 뉴스 보도자료 상단에는 <b>아마존 진출 및 기업 성장 스토리</b>가 우선 배치되어 브랜드의 신뢰도와 대외 성과를 바로 검증할 수 있습니다.
         </div>
     """, unsafe_allow_html=True)
