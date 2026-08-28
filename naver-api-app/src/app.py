@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (제목 폰트 크기 20% 축소 및 모던 레이아웃 적용)
+      (스파/에스테틱 유지 및 교육/인명 노이즈 정밀 필터링 적용)
 """
 
 import streamlit as st
@@ -51,7 +51,7 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 커스텀 스타일 (제목 20% 축소 반영)
+# 2. 페이지 설정 및 커스텀 스타일
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -67,7 +67,6 @@ st.markdown("""
         padding-bottom: 3rem; 
     }
     
-    /* 제목 크기 20% 축소: 2.2rem -> 1.55rem */
     h1 {
         font-size: 1.55rem !important;
         font-weight: 800 !important;
@@ -77,7 +76,6 @@ st.markdown("""
         line-height: 1.3 !important;
     }
     
-    /* 입체형 KPI 카드 */
     .kpi-card {
         background: #FFFFFF;
         border: 1px solid #E5E8EB;
@@ -120,7 +118,6 @@ st.markdown("""
     .badge-highlight { background-color: #FFF0F1; color: #F04452; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; }
     .badge-gray { background-color: #F2F4F6; color: #6B7684; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; }
     
-    /* 인사이트 박스 */
     .insight-box {
         background-color: #F8FAFC;
         border-left: 4px solid #1B64DA;
@@ -255,7 +252,7 @@ with st.sidebar:
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 5. 헤더 (20% 축소 폰트 및 네이티브 컴포넌트 렌더링)
+# 5. 헤더 (Streamlit 네이티브 렌더링)
 # -----------------------------------------------------------------------------
 col_head1, col_head2 = st.columns([3, 1])
 with col_head1:
@@ -275,6 +272,13 @@ st.divider()
 
 headers_get = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
 headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
+
+# -----------------------------------------------------------------------------
+# 불용어(비관련 노이즈 키워드) 정의 목록 (스파, 에스테틱 제외 복원)
+# -----------------------------------------------------------------------------
+STOP_WORDS = [
+    "스피치", "학원", "홍진경", "딸", "영어", "수학", "발음", "보컬", "골프"
+]
 
 # 1. 검색광고 API 데이터 수집
 ads_dict = {}
@@ -301,9 +305,11 @@ if ads_customer_id and ads_api_key and ads_secret_key:
             if r_kw in clean_input_kws:
                 ads_dict[r_kw] = {"pc": pc, "mo": mo, "total": tot, "comp": c_idx}
             else:
-                rel_keywords_list.append({
-                    "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
-                })
+                # 🚫 불용어가 포함된 연관 키워드만 리스트에서 제외 (스파/에스테틱은 유지)
+                if not any(sw in r_kw for sw in STOP_WORDS):
+                    rel_keywords_list.append({
+                        "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
+                    })
 
 # 2. 데이터랩 검색 트렌드 (현재 기간 + 전기 비교 데이터)
 query_days = (end_date - start_date).days + 1
@@ -614,11 +620,11 @@ with tab3:
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# Tab 4: 연관 롱테일 확장 키워드 TOP 20
+# Tab 4: 연관 롱테일 확장 키워드 TOP 20 (스파/에스테틱 유지 & 노이즈 필터링)
 # -----------------------------------------------------------------------------
 with tab4:
     st.markdown("#### 🔍 함께 유입되는 브랜드 연관 롱테일 확장 키워드 분석")
-    st.markdown("네이버 검색광고 빅데이터를 통해 소비자가 브랜드와 함께 무엇을 궁금해하는지(구매의도/고민)를 분류합니다.")
+    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경 딸, 보컬 등 비관련 교육/인명 키워드가 자동 제외되었습니다. (스파/에스테틱 등 바디케어 연관어는 정상 포함)")
 
     if rel_keywords_list:
         df_all_rel = pd.DataFrame(rel_keywords_list).sort_values(by="총 검색량", ascending=False).reset_index(drop=True)
@@ -632,6 +638,8 @@ with tab4:
                 return "🛡️ 성분/품질/안전"
             elif any(w in kw_text for w in ["입는", "팬티형", "오버나이트", "라이너", "중형", "대형"]):
                 return "📦 특정 규격/타입"
+            elif any(w in kw_text for w in ["청결제", "워시", "스파", "에스테틱", "미스트"]):
+                return "🧴 청결제/바디케어"
             else:
                 return "🏷️ 일반 연관어"
 
@@ -655,7 +663,7 @@ with tab4:
         st.markdown("""
             <div class="insight-box">
                 💡 <b>연관 롱테일 키워드 전략 인사이트</b><br>
-                • <b>'입는 오버나이트', '유기농 순면'</b> 등 특정 규격 및 성분 관련 롱테일 키워드의 월간 검색 볼륨이 크게 증가하는 추세입니다.<br>
+                • <b>'입는 오버나이트', '유기농 순면'</b> 및 여성청결제 관련 키워드의 월간 검색 볼륨이 크게 증가하고 있습니다.<br>
                 • 경쟁사가 아직 공격적으로 입찰하지 않은 <b>'경쟁도: 보통/낮음' 키워드 중 검색량이 1,000회 이상인 세부 키워드</b>를 선점하여 낮은 CPC로 고효율 전환을 유도할 수 있습니다.
             </div>
         """, unsafe_allow_html=True)
@@ -663,16 +671,22 @@ with tab4:
         st.info("검색광고 API에서 연관 키워드 풀을 조회 중입니다.")
 
 # -----------------------------------------------------------------------------
-# Tab 5: 검색 급증 원인 디깅 (디스커버리)
+# Tab 5: 검색 급증 원인 디깅 (교육/인명 노이즈 배제 검색 적용)
 # -----------------------------------------------------------------------------
 with tab5:
     st.markdown("#### 📰 브랜드별 실시간 소셜 여론 & 미디어 노출 원인 디깅")
     
     selected_target = st.selectbox("디깅 대상 브랜드 선택", options=keywords, index=0)
     
-    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 1})
-    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 1})
-    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 1})
+    # 🔍 '라엘' 선택 시 교육 및 인명 관련 불용어만 배제 (-스피치 -학원 -홍진경)
+    if selected_target == "라엘":
+        search_query = "라엘 -스피치 -학원 -홍진경"
+    else:
+        search_query = selected_target
+        
+    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": search_query, "display": 1})
+    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": search_query, "display": 1})
+    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": search_query, "display": 1})
     
     b_cnt = res_b["data"].get("total", 0) if res_b["status"] == "success" else 0
     c_cnt = res_c["data"].get("total", 0) if res_c["status"] == "success" else 0
@@ -705,7 +719,7 @@ with tab5:
     
     with col_d1:
         st.markdown(f"##### 📢 최신 언론 보도 (News)")
-        res_news_list = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 6, "sort": "sim"})
+        res_news_list = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
         if res_news_list["status"] == "success":
             for item in res_news_list["data"].get("items", []):
                 t = item["title"].replace("<b>", "").replace("</b>", "")
@@ -714,7 +728,7 @@ with tab5:
                 
     with col_d2:
         st.markdown(f"##### ☕ 커뮤니티/맘카페 글 (Cafe)")
-        res_cafe_list = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 6, "sort": "sim"})
+        res_cafe_list = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
         if res_cafe_list["status"] == "success":
             for item in res_cafe_list["data"].get("items", []):
                 t = item["title"].replace("<b>", "").replace("</b>", "")
@@ -722,7 +736,7 @@ with tab5:
 
     with col_d3:
         st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
-        res_blog_list = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 6, "sort": "sim"})
+        res_blog_list = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
         if res_blog_list["status"] == "success":
             for item in res_blog_list["data"].get("items", []):
                 t = item["title"].replace("<b>", "").replace("</b>", "")
