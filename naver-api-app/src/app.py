@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (생리대/라엘 키워드 온전 수집 및 스피치/학원/홍진경/딸 4종 노이즈 제외)
+      (디깅 탭 카드-목록 순서 일치 및 알라딘 서재 노이즈 필터링 적용)
 """
 
 import streamlit as st
@@ -51,7 +51,7 @@ if now_kst >= next_9am:
 seconds_until_next_9am = max(60, int((next_9am - now_kst).total_seconds()))
 
 # -----------------------------------------------------------------------------
-# 2. 페이지 설정 및 커스텀 스타일
+# 2. 페이지 설정 및 커스텀 스타일 (배지 클리핑 방지 및 카드 디자인)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="생리대 브랜드별 네이버 분석 대시보드",
@@ -63,7 +63,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .block-container { 
-        padding-top: 1.5rem !important; 
+        padding-top: 1.8rem !important; 
         padding-bottom: 3rem; 
     }
     
@@ -74,6 +74,20 @@ st.markdown("""
         padding-bottom: 0px !important;
         margin-bottom: 4px !important;
         line-height: 1.3 !important;
+    }
+    
+    /* 상단 배지 스타일 (위아래 잘림 방지) */
+    .top-update-badge {
+        background-color: #E8F3FF;
+        color: #1B64DA;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid #B5D4FE;
+        display: inline-block;
+        line-height: 1.3 !important;
+        margin-top: 8px;
     }
     
     .kpi-card {
@@ -252,7 +266,7 @@ with st.sidebar:
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 5. 헤더 (Streamlit 네이티브 렌더링)
+# 5. 헤더 (배지 상단 여백 및 잘림 해결)
 # -----------------------------------------------------------------------------
 col_head1, col_head2 = st.columns([3, 1])
 with col_head1:
@@ -261,8 +275,8 @@ with col_head1:
 
 with col_head2:
     st.markdown(f"""
-        <div style="text-align: right; padding-top: 10px;">
-            <span style="background-color: #E8F3FF; color: #1B64DA; font-size: 0.82rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; border: 1px solid #B5D4FE; display: inline-block;">
+        <div style="text-align: right;">
+            <span class="top-update-badge">
                 🔄 매일 09:00 업데이트 ({last_update_str})
             </span>
         </div>
@@ -274,9 +288,9 @@ headers_get = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_s
 headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
 
 # -----------------------------------------------------------------------------
-# 🎯 제외할 불용어 4종만 명확히 정의 (생리대, 소형, 대형, 입오버, 라이너 등은 정상 수집)
+# 불용어 정의 (알라딘 서재 및 도서 노이즈 추가 배제)
 # -----------------------------------------------------------------------------
-STOP_WORDS = ["스피치", "학원", "홍진경", "딸"]
+STOP_WORDS = ["스피치", "학원", "홍진경", "딸", "알라딘", "알라딘서재", "100자평", "서평", "도서", "책소개"]
 
 # 1. 검색광고 API 데이터 수집
 ads_dict = {}
@@ -303,13 +317,12 @@ if ads_customer_id and ads_api_key and ads_secret_key:
             if r_kw in clean_input_kws:
                 ads_dict[r_kw] = {"pc": pc, "mo": mo, "total": tot, "comp": c_idx}
             else:
-                # 🚫 불용어 4종(스피치, 학원, 홍진경, 딸)이 포함된 연관 키워드만 제외
                 if not any(sw in r_kw for sw in STOP_WORDS):
                     rel_keywords_list.append({
                         "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
                     })
 
-# 2. 데이터랩 검색 트렌드 (현재 기간 + 전기 비교 데이터)
+# 2. 데이터랩 검색 트렌드
 query_days = (end_date - start_date).days + 1
 prev_end_date = start_date - datetime.timedelta(days=1)
 prev_start_date = prev_end_date - datetime.timedelta(days=query_days - 1)
@@ -622,7 +635,7 @@ with tab3:
 # -----------------------------------------------------------------------------
 with tab4:
     st.markdown("#### 🔍 함께 유입되는 브랜드 연관 롱테일 확장 키워드 분석")
-    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경, 딸 키워드가 자동 제외되었습니다. (생리대, 소형, 대형, 입오버, 라이너 등은 정상 수집)")
+    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경, 딸, 도서/알라딘 관련 키워드가 자동 제외되었습니다.")
 
     if rel_keywords_list:
         df_all_rel = pd.DataFrame(rel_keywords_list).sort_values(by="총 검색량", ascending=False).reset_index(drop=True)
@@ -669,22 +682,22 @@ with tab4:
         st.info("검색광고 API에서 연관 키워드 풀을 조회 중입니다.")
 
 # -----------------------------------------------------------------------------
-# Tab 5: 검색 급증 원인 디깅
+# Tab 5: 검색 급증 원인 디깅 (순서: 블로그 -> 카페 -> 뉴스 일치 및 알라딘 서재 필터링)
 # -----------------------------------------------------------------------------
 with tab5:
     st.markdown("#### 📰 브랜드별 실시간 소셜 여론 & 미디어 노출 원인 디깅")
     
     selected_target = st.selectbox("디깅 대상 브랜드 선택", options=keywords, index=0)
     
-    # 1. API 호출 시 순수 브랜드명으로 호출하여 언급량 정상 집계
-    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
-    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
-    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
+    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 50, "sort": "sim"})
+    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 50, "sort": "sim"})
+    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 50, "sort": "sim"})
     
     b_cnt = res_b["data"].get("total", 0) if res_b["status"] == "success" else 0
     c_cnt = res_c["data"].get("total", 0) if res_c["status"] == "success" else 0
     n_cnt = res_n["data"].get("total", 0) if res_n["status"] == "success" else 0
     
+    # 1. 상단 KPI 카드: [1. 블로그] -> [2. 카페] -> [3. 뉴스] 순서
     dig_cols = st.columns(3)
     with dig_cols[0]:
         st.markdown(f"""
@@ -708,56 +721,68 @@ with tab5:
             </div>
         """, unsafe_allow_html=True)
 
-    # 2. 노출 리스트에서 불용어 4종(스피치, 학원, 홍진경, 딸) 필터링 함수
+    # 2. 노이즈 필터링 함수 (알라딘서재, 도서, 학원, 스피치 등 제외)
     def filter_clean_items(items):
         clean = []
         for item in items:
             title = item.get("title", "").replace("<b>", "").replace("</b>", "")
             desc = item.get("description", "").replace("<b>", "").replace("</b>", "")
-            if not any(sw in title or sw in desc for sw in STOP_WORDS):
+            blogger = item.get("bloggername", "")
+            # 알라딘 서재 및 도서, 불용어 포함 글 제외
+            if not any(sw in title or sw in desc or sw in blogger for sw in STOP_WORDS):
                 clean.append(item)
         return clean
 
+    # 3. 하단 리스트: [1. 블로그 리뷰] -> [2. 카페 글] -> [3. 뉴스 기사] 순서로 동일 배치
     col_d1, col_d2, col_d3 = st.columns(3)
     
     with col_d1:
-        st.markdown(f"##### 📢 최신 언론 보도 (News)")
-        if res_n["status"] == "success":
-            raw_news = res_n["data"].get("items", [])
-            clean_news = filter_clean_items(raw_news)
-            for item in clean_news[:6]:
-                t = item["title"].replace("<b>", "").replace("</b>", "")
-                link = item.get("originallink") or item.get("link")
-                st.markdown(f"- 📰 [{t[:28]}...]({link})")
+        st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
+        if res_b["status"] == "success":
+            raw_blogs = res_b["data"].get("items", [])
+            clean_blogs = filter_clean_items(raw_blogs)
+            if clean_blogs:
+                for item in clean_blogs[:6]:
+                    t = item["title"].replace("<b>", "").replace("</b>", "")
+                    st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
+            else:
+                st.caption("유효한 블로그 리뷰가 없습니다.")
         else:
-            st.caption("뉴스 데이터를 불러오지 못했습니다.")
-                
+            st.caption("블로그 데이터를 불러오지 못했습니다.")
+
     with col_d2:
         st.markdown(f"##### ☕ 커뮤니티/맘카페 글 (Cafe)")
         if res_c["status"] == "success":
             raw_cafes = res_c["data"].get("items", [])
             clean_cafes = filter_clean_items(raw_cafes)
-            for item in clean_cafes[:6]:
-                t = item["title"].replace("<b>", "").replace("</b>", "")
-                st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
+            if clean_cafes:
+                for item in clean_cafes[:6]:
+                    t = item["title"].replace("<b>", "").replace("</b>", "")
+                    st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
+            else:
+                st.caption("유효한 카페 게시글이 없습니다.")
         else:
             st.caption("카페 데이터를 불러오지 못했습니다.")
 
     with col_d3:
-        st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
-        if res_b["status"] == "success":
-            raw_blogs = res_b["data"].get("items", [])
-            clean_blogs = filter_clean_items(raw_blogs)
-            for item in clean_blogs[:6]:
-                t = item["title"].replace("<b>", "").replace("</b>", "")
-                st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
+        st.markdown(f"##### 📢 최신 언론 보도 (News)")
+        if res_n["status"] == "success":
+            raw_news = res_n["data"].get("items", [])
+            clean_news = filter_clean_items(raw_news)
+            if clean_news:
+                for item in clean_news[:6]:
+                    t = item["title"].replace("<b>", "").replace("</b>", "")
+                    link = item.get("originallink") or item.get("link")
+                    st.markdown(f"- 📰 [{t[:28]}...]({link})")
+            else:
+                st.caption("유효한 뉴스 기사가 없습니다.")
         else:
-            st.caption("블로그 데이터를 불러오지 못했습니다.")
+            st.caption("뉴스 데이터를 불러오지 못했습니다.")
 
     st.markdown(f"""
         <div class="insight-box">
             💡 <b>소셜 여론 및 디스커버리 인사이트</b><br>
-            • <b>'{selected_target}'</b>의 카페 언급량(<b>{c_cnt:,}건</b>) 및 블로그 언급량(<b>{b_cnt:,}건</b>)은 실제 소비자들의 자발적인 추천과 실사용 후기가 오가는 핵심 채널입니다.<br>
-            • 최근 급상승 기사 및 블로그 체험단 콘텐츠 링크를 직접 클릭하여 확인하고, 부정 이슈 발생 시 조기 대응 파이프라인을 구축하세요.
+            • <b>'{selected_target}'</b>의 블로그(<b>{b_cnt:,}건</b>) 및 카페(<b>{c_cnt:,}건</b>) 언급량은 실제 소비자들의 자발적인 실사용 후기와 체험단 반응이 누적되는 핵심 채널입니다.<br>
+            • 각 채널별 최신 게시글 링크를 직접 확인하여 소비자 반응 및 프로모션 노출 현황을 모니터링하세요.
         </div>
     """, unsafe_allow_html=True)
