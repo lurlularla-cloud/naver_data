@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (스파/에스테틱 유지 및 교육/인명 노이즈 정밀 필터링 적용)
+      (생리대/라엘 키워드 온전 수집 및 스피치/학원/홍진경/딸 4종 노이즈 제외)
 """
 
 import streamlit as st
@@ -274,11 +274,9 @@ headers_get = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_s
 headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
 
 # -----------------------------------------------------------------------------
-# 불용어(비관련 노이즈 키워드) 정의 목록 (스파, 에스테틱 제외 복원)
+# 🎯 제외할 불용어 4종만 명확히 정의 (생리대, 소형, 대형, 입오버, 라이너 등은 정상 수집)
 # -----------------------------------------------------------------------------
-STOP_WORDS = [
-    "스피치", "학원", "홍진경", "딸", "영어", "수학", "발음", "보컬", "골프"
-]
+STOP_WORDS = ["스피치", "학원", "홍진경", "딸"]
 
 # 1. 검색광고 API 데이터 수집
 ads_dict = {}
@@ -305,7 +303,7 @@ if ads_customer_id and ads_api_key and ads_secret_key:
             if r_kw in clean_input_kws:
                 ads_dict[r_kw] = {"pc": pc, "mo": mo, "total": tot, "comp": c_idx}
             else:
-                # 🚫 불용어가 포함된 연관 키워드만 리스트에서 제외 (스파/에스테틱은 유지)
+                # 🚫 불용어 4종(스피치, 학원, 홍진경, 딸)이 포함된 연관 키워드만 제외
                 if not any(sw in r_kw for sw in STOP_WORDS):
                     rel_keywords_list.append({
                         "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
@@ -620,11 +618,11 @@ with tab3:
     """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# Tab 4: 연관 롱테일 확장 키워드 TOP 20 (스파/에스테틱 유지 & 노이즈 필터링)
+# Tab 4: 연관 롱테일 확장 키워드 TOP 20
 # -----------------------------------------------------------------------------
 with tab4:
     st.markdown("#### 🔍 함께 유입되는 브랜드 연관 롱테일 확장 키워드 분석")
-    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경 딸, 보컬 등 비관련 교육/인명 키워드가 자동 제외되었습니다. (스파/에스테틱 등 바디케어 연관어는 정상 포함)")
+    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경, 딸 키워드가 자동 제외되었습니다. (생리대, 소형, 대형, 입오버, 라이너 등은 정상 수집)")
 
     if rel_keywords_list:
         df_all_rel = pd.DataFrame(rel_keywords_list).sort_values(by="총 검색량", ascending=False).reset_index(drop=True)
@@ -636,7 +634,7 @@ with tab4:
                 return "⭐ 후기/탐색"
             elif any(w in kw_text for w in ["부작용", "발암물질", "흡수력", "성분", "유기농", "순면", "사이즈"]):
                 return "🛡️ 성분/품질/안전"
-            elif any(w in kw_text for w in ["입는", "팬티형", "오버나이트", "라이너", "중형", "대형"]):
+            elif any(w in kw_text for w in ["입는", "팬티형", "오버나이트", "입오버", "라이너", "중형", "대형", "소형", "생리대"]):
                 return "📦 특정 규격/타입"
             elif any(w in kw_text for w in ["청결제", "워시", "스파", "에스테틱", "미스트"]):
                 return "🧴 청결제/바디케어"
@@ -663,7 +661,7 @@ with tab4:
         st.markdown("""
             <div class="insight-box">
                 💡 <b>연관 롱테일 키워드 전략 인사이트</b><br>
-                • <b>'입는 오버나이트', '유기농 순면'</b> 및 여성청결제 관련 키워드의 월간 검색 볼륨이 크게 증가하고 있습니다.<br>
+                • <b>'입는 오버나이트(입오버)', '유기농 순면', '라이너'</b> 등 특정 규격 및 성분 관련 롱테일 키워드의 월간 검색 볼륨이 크게 증가하고 있습니다.<br>
                 • 경쟁사가 아직 공격적으로 입찰하지 않은 <b>'경쟁도: 보통/낮음' 키워드 중 검색량이 1,000회 이상인 세부 키워드</b>를 선점하여 낮은 CPC로 고효율 전환을 유도할 수 있습니다.
             </div>
         """, unsafe_allow_html=True)
@@ -671,22 +669,17 @@ with tab4:
         st.info("검색광고 API에서 연관 키워드 풀을 조회 중입니다.")
 
 # -----------------------------------------------------------------------------
-# Tab 5: 검색 급증 원인 디깅 (교육/인명 노이즈 배제 검색 적용)
+# Tab 5: 검색 급증 원인 디깅
 # -----------------------------------------------------------------------------
 with tab5:
     st.markdown("#### 📰 브랜드별 실시간 소셜 여론 & 미디어 노출 원인 디깅")
     
     selected_target = st.selectbox("디깅 대상 브랜드 선택", options=keywords, index=0)
     
-    # 🔍 '라엘' 선택 시 교육 및 인명 관련 불용어만 배제 (-스피치 -학원 -홍진경)
-    if selected_target == "라엘":
-        search_query = "라엘 -스피치 -학원 -홍진경"
-    else:
-        search_query = selected_target
-        
-    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": search_query, "display": 1})
-    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": search_query, "display": 1})
-    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": search_query, "display": 1})
+    # 1. API 호출 시 순수 브랜드명으로 호출하여 언급량 정상 집계
+    res_b = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
+    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
+    res_n = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": selected_target, "display": 30, "sort": "sim"})
     
     b_cnt = res_b["data"].get("total", 0) if res_b["status"] == "success" else 0
     c_cnt = res_c["data"].get("total", 0) if res_c["status"] == "success" else 0
@@ -715,37 +708,56 @@ with tab5:
             </div>
         """, unsafe_allow_html=True)
 
+    # 2. 노출 리스트에서 불용어 4종(스피치, 학원, 홍진경, 딸) 필터링 함수
+    def filter_clean_items(items):
+        clean = []
+        for item in items:
+            title = item.get("title", "").replace("<b>", "").replace("</b>", "")
+            desc = item.get("description", "").replace("<b>", "").replace("</b>", "")
+            if not any(sw in title or sw in desc for sw in STOP_WORDS):
+                clean.append(item)
+        return clean
+
     col_d1, col_d2, col_d3 = st.columns(3)
     
     with col_d1:
         st.markdown(f"##### 📢 최신 언론 보도 (News)")
-        res_news_list = fetch_naver_api("https://openapi.naver.com/v1/search/news.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
-        if res_news_list["status"] == "success":
-            for item in res_news_list["data"].get("items", []):
+        if res_n["status"] == "success":
+            raw_news = res_n["data"].get("items", [])
+            clean_news = filter_clean_items(raw_news)
+            for item in clean_news[:6]:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 link = item.get("originallink") or item.get("link")
                 st.markdown(f"- 📰 [{t[:28]}...]({link})")
+        else:
+            st.caption("뉴스 데이터를 불러오지 못했습니다.")
                 
     with col_d2:
         st.markdown(f"##### ☕ 커뮤니티/맘카페 글 (Cafe)")
-        res_cafe_list = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
-        if res_cafe_list["status"] == "success":
-            for item in res_cafe_list["data"].get("items", []):
+        if res_c["status"] == "success":
+            raw_cafes = res_c["data"].get("items", [])
+            clean_cafes = filter_clean_items(raw_cafes)
+            for item in clean_cafes[:6]:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
+        else:
+            st.caption("카페 데이터를 불러오지 못했습니다.")
 
     with col_d3:
         st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
-        res_blog_list = fetch_naver_api("https://openapi.naver.com/v1/search/blog.json", headers=headers_get, params={"query": search_query, "display": 6, "sort": "sim"})
-        if res_blog_list["status"] == "success":
-            for item in res_blog_list["data"].get("items", []):
+        if res_b["status"] == "success":
+            raw_blogs = res_b["data"].get("items", [])
+            clean_blogs = filter_clean_items(raw_blogs)
+            for item in clean_blogs[:6]:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
+        else:
+            st.caption("블로그 데이터를 불러오지 못했습니다.")
 
     st.markdown(f"""
         <div class="insight-box">
             💡 <b>소셜 여론 및 디스커버리 인사이트</b><br>
-            • <b>'{selected_target}'</b>의 카페 언급량(<b>{c_cnt:,}건</b>)은 실제 소비자들의 자발적인 추천과 실사용 후기가 오가는 핵심 채널입니다.<br>
-            • 최근 급상승 기사 및 블로그 체험단 콘텐츠 링크를 직접 클릭하여 확인하고, 부정 이슈(성분, 불량 등) 발생 시 조기 대응 파이프라인을 구축하세요.
+            • <b>'{selected_target}'</b>의 카페 언급량(<b>{c_cnt:,}건</b>) 및 블로그 언급량(<b>{b_cnt:,}건</b>)은 실제 소비자들의 자발적인 추천과 실사용 후기가 오가는 핵심 채널입니다.<br>
+            • 최근 급상승 기사 및 블로그 체험단 콘텐츠 링크를 직접 클릭하여 확인하고, 부정 이슈 발생 시 조기 대응 파이프라인을 구축하세요.
         </div>
     """, unsafe_allow_html=True)
