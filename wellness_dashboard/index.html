@@ -428,56 +428,14 @@ tbody tr:hover { background: var(--color-surface-2); }
   </section>
 
   <!-- 여성청결제 탭 내 라엘 심층 분석 섹션 -->
-  <section class="chart-card span2" id="raelCleanserSection" style="margin-top:var(--space-6); margin-bottom:var(--space-6)">
+  <section class="chart-card" id="raelCleanserSection" style="margin-top:var(--space-6)">
     <div class="card-head" style="padding:var(--space-4) var(--space-4) var(--space-3)">
       <div>
-        <div class="card-title">🌸 라엘(Rael) 페미닌 워시 라인업 심층 분석</div>
-        <div class="card-sub">젤 워시 · 폼 워시 제형별 스펙, pH 약산성, ml당 단가 및 3채널(올영·화해·쿠팡) 포지셔닝</div>
+        <div class="card-title">라엘(Rael) 페미닌 워시 라인업 심층 분석</div>
+        <div class="card-sub">천연 폼 워시 · 에센셜 젤 워시 제형별 스펙 · 평점 · 리뷰 · 3채널(올영·화해·쿠팡) 포지셔닝</div>
       </div>
     </div>
-    <div id="raelCleanserContent">
-      <div class="dist-prod" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);">
-        <!-- 젤 워시 카드 -->
-        <div class="dist-cell" style="padding: var(--space-4); border: 1px solid var(--color-border); background: var(--color-surface);">
-          <div class="dist-cell-head">
-            <span class="dist-cell-label" style="font-size: 13px; color: var(--color-primary);">🌿 에센셜 젤 여성청결제 (200ml)</span>
-            <span class="badge badge-약산성">pH 약산성</span>
-          </div>
-          <ul style="margin-top: 8px; gap: 6px;">
-            <li style="-webkit-line-clamp: unset;"><b>가격/단가:</b> 약 16,900원 (84.5원/ml)</li>
-            <li style="-webkit-line-clamp: unset;"><b>핵심 특징:</b> 식물유래 계면활성제, 무향/저자극 젤 타입</li>
-            <li style="-webkit-line-clamp: unset;"><b>입점 채널:</b> 올리브영, 화해, 쿠팡 (3채널 전점 입점)</li>
-            <li style="-webkit-line-clamp: unset;"><b>채널 평가:</b> 화해 20가지 유해성분 제로, 올영 데일리 워시 상위권</li>
-          </ul>
-        </div>
-
-        <!-- 폼/포밍 워시 카드 -->
-        <div class="dist-cell" style="padding: var(--space-4); border: 1px solid var(--color-border); background: var(--color-surface);">
-          <div class="dist-cell-head">
-            <span class="dist-cell-label" style="font-size: 13px; color: var(--color-primary);">☁️ 리얼 라엘 천연 폼 여성청결제 (150ml)</span>
-            <span class="badge badge-약산성">pH 약산성</span>
-          </div>
-          <ul style="margin-top: 8px; gap: 6px;">
-            <li style="-webkit-line-clamp: unset;"><b>가격/단가:</b> 약 15,200원 (101.3원/ml)</li>
-            <li style="-webkit-line-clamp: unset;"><b>핵심 특징:</b> 마이크로 버블 폼, 즉시 거품 분사(노러빙)</li>
-            <li style="-webkit-line-clamp: unset;"><b>입점 채널:</b> 올리브영, 쿠팡, 자사몰</li>
-            <li style="-webkit-line-clamp: unset;"><b>채널 평가:</b> 민감성 피부 자극 테스트 완료, 부드러운 사용감 만족도 96%</li>
-          </ul>
-        </div>
-
-        <!-- 라엘 브랜드 우먼웰니스 전략 요약 -->
-        <div class="dist-cell" style="padding: var(--space-4); border: 1px solid var(--color-border); background: var(--color-surface-offset);">
-          <div class="dist-cell-head">
-            <span class="dist-cell-label" style="font-size: 13px; color: var(--color-text);">📊 라엘 청결제 시장 경쟁력 요약</span>
-          </div>
-          <ul style="margin-top: 8px; gap: 6px; font-size: 11px;">
-            <li style="-webkit-line-clamp: unset;">• <b>생리대 1위 인지도 연계:</b> 생리대(유기농 순면) 고객이 청결제로 유입되는 크로스셀링 파워 우수</li>
-            <li style="-webkit-line-clamp: unset;">• <b>단가 포지셔닝:</b> ml당 80~100원대 중가(Mid-tier) 클린뷰티 포지션</li>
-            <li style="-webkit-line-clamp: unset;">• <b>안전성 지표:</b> 전 제품 비건/약산성/EWG 그린 등급 지향으로 화해·올영 타깃층에 적합</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <div id="raelCleanserContent"></div>
   </section>
 
   <section class="card table-card">
@@ -820,6 +778,7 @@ function render() {
   renderKPI(data);
   renderCharts(data);
   renderTable(data);
+  if (window.renderRaelCleanserSection) { renderRaelCleanserSection(); }
 }
 
 // table sorting

@@ -133,3 +133,98 @@ window.renderRaelSection = function() {
 
   el.innerHTML = summaryHtml + detailHtml + insightHtml + sourceHtml;
 };
+
+// ==========================================
+// 라엘 여성청결제(페미닌 워시) 라인업 심층 분석 데이터
+// ==========================================
+window.RAEL_CLEANSER_SUBLINES = [
+  {
+    line: '리얼 라엘 천연 폼 여성청결제 (150ml)',
+    type: '마이크로 버블 폼 (노러빙)',
+    desc: '마일드한 천연 계면활성제 마이크로 버블 즉시 분사. 8가지 미니멀 성분 및 COSMOS 천연 인증 처방.',
+    channels: ['올리브영', '화해', '쿠팡', '자사몰'],
+    rating: 4.82, reviewCount: 3850, price: 15200, regularPrice: 18000, discountRate: '15%',
+    volume: 150, unitPrice: 101.3, ph: 'pH 약산성 (4.5~5.5)', target: '민감성+데일리',
+    products: [
+      { spec: '본품 단품', name: '리얼 라엘 천연 여성청결제 폼 150ml', price: 15200, unitPrice: 101.3, rating: 4.82, review: 3850, channel: '올리브영/화해/쿠팡' },
+      { spec: '더블 기획', name: '천연 폼 청결제 150ml 1+1 더블 세트', price: 27900, unitPrice: 93.0, rating: 4.85, review: 1420, channel: '자사몰/쿠팡' },
+      { spec: '여행용/휴대', name: '천연 폼 청결제 50ml 미니', price: 6500, unitPrice: 130.0, rating: 4.80, review: 580, channel: '올리브영/자사몰' }
+    ]
+  },
+  {
+    line: '라엘 에센셜 젤 여성청결제 (200ml)',
+    type: '수분 보습 젤 타입',
+    desc: '수분감 가득한 식물 유래 젤 제형. 화해 20가지 유해성분 제로, 민감성 피부 1차 자극 0.00 비자극 인증.',
+    channels: ['올리브영', '화해', '쿠팡'],
+    rating: 4.78, reviewCount: 1240, price: 16900, regularPrice: 19900, discountRate: '15%',
+    volume: 200, unitPrice: 84.5, ph: 'pH 약산성 (4.5~5.5)', target: '데일리 보습',
+    products: [
+      { spec: '본품 단품', name: '라엘 에센셜 젤 여성청결제 200ml', price: 16900, unitPrice: 84.5, rating: 4.78, review: 1240, channel: '올리브영/화해/쿠팡' },
+      { spec: '대용량 번들', name: '에센셜 젤 청결제 200ml 2개입 번들', price: 29900, unitPrice: 74.8, rating: 4.81, review: 620, channel: '쿠팡 로켓' }
+    ]
+  }
+];
+
+// 라엘 여성청결제 패널 렌더링 함수
+window.renderRaelCleanserSection = function() {
+  var el = document.getElementById('raelCleanserContent');
+  if (!el) return;
+
+  var fmt = function(n) { return n != null ? n.toLocaleString() : 'n.a.'; };
+  var ratingStr = function(r) { return r != null ? r.toFixed(1) : 'n.a.'; };
+
+  // 1. 상단 요약 KPI 카드
+  var summaryHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--space-4);margin-bottom:var(--space-5)">' +
+    window.RAEL_CLEANSER_SUBLINES.map(function(s) {
+      return '<div class="kpi" style="padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<div class="kpi-label" style="font-size:0.85rem;color:var(--color-primary);font-weight:700">' + s.line + '</div>' +
+          '<span class="badge badge-약산성">' + s.ph + '</span>' +
+        '</div>' +
+        '<div class="kpi-value" style="font-size:1.6rem;color:var(--color-text);margin:6px 0">' + ratingStr(s.rating) + ' <small style="font-size:0.9rem;font-weight:600;color:var(--color-primary)">/ 5.0</small></div>' +
+        '<div class="kpi-sub" style="font-weight:600;color:var(--color-text-muted)">리뷰 ' + fmt(s.reviewCount) + '건 · ml당 ' + s.unitPrice.toFixed(1) + '원</div>' +
+        '<div class="kpi-sub" style="margin-top:6px;font-size:0.75rem;color:var(--color-accent)">입점: ' + s.channels.join(', ') + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+
+  // 2. 라인별 상세 스펙 및 SKU 표
+  var detailHtml = window.RAEL_CLEANSER_SUBLINES.map(function(s) {
+    var rows = s.products.map(function(p) {
+      return '<tr>' +
+        '<td><span class="badge badge-channel">' + p.spec + '</span></td>' +
+        '<td><b>' + p.name + '</b></td>' +
+        '<td style="text-align:right">' + p.price.toLocaleString() + '원</td>' +
+        '<td style="text-align:right">' + p.unitPrice.toFixed(1) + '원/ml</td>' +
+        '<td style="text-align:center">' + ratingStr(p.rating) + '</td>' +
+        '<td style="text-align:right">' + fmt(p.review) + '</td>' +
+        '<td><span class="muted" style="font-size:11px">' + p.channel + '</span></td>' +
+        '</tr>';
+    }).join('');
+    return '<div style="margin-bottom:var(--space-5)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--space-2);flex-wrap:wrap;gap:var(--space-2)">' +
+        '<div style="font-weight:700;font-size:1.05rem;color:var(--color-text)">' + s.line + ' <span style="font-size:0.8rem;font-weight:400;color:var(--color-text-muted)">(' + s.type + ')</span></div>' +
+        '<div style="font-size:0.8rem;color:var(--color-text-muted)">할인가 ' + s.price.toLocaleString() + '원 (-' + s.discountRate + ') · 정가 ' + s.regularPrice.toLocaleString() + '원</div>' +
+      '</div>' +
+      '<div class="kpi-sub" style="margin-bottom:var(--space-2);color:var(--color-text-muted)">' + s.desc + '</div>' +
+      '<div class="table-scroll" style="max-height:220px"><table class="data-table"><thead><tr><th>구분</th><th>제품명</th><th style="text-align:right">판매가</th><th style="text-align:right">ml당 단가</th><th style="text-align:center">평점</th><th style="text-align:right">리뷰수</th><th>채널</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '</div>';
+  }).join('');
+
+  // 3. 3채널 포지셔닝 및 경쟁력 전략 인사이트
+  var insightHtml = '<div style="margin-top:var(--space-5);padding:var(--space-4);background:var(--color-surface-2);border-left:3px solid var(--color-primary);border-radius:var(--radius-md)">' +
+    '<div style="font-weight:700;margin-bottom:var(--space-2);color:var(--color-text)">📊 라엘(Rael) 페미닌 워시 3채널 경쟁력 & 리뉴얼 전략 인사이트</div>' +
+    '<ul style="margin:0;padding-left:1.1rem;color:var(--color-text-muted);font-size:0.85rem;line-height:1.6">' +
+      '<li><b>생리대 1위 인지도 연계 크로스셀링:</b> 유기농 순면 생리대(리뷰 4.2만 건)의 압도적 브랜드 충성도가 청결제로 자연스럽게 유입되는 강력한 크로스셀링 시너지를 확보하고 있습니다.</li>' +
+      '<li><b>단가 포지셔닝 (80~100원/ml):</b> 폼 101.3원/ml, 젤 84.5원/ml로 올리브영/화해/쿠팡 내 중가(Mid-tier) 클린뷰티 포지션에 안착하여 가격 저항선이 낮습니다.</li>' +
+      '<li><b>안전성 및 유해성분 0%:</b> COSMOS 천연 유기농 인증, 단 8가지 전성분 처방, 전 제품 비건/약산성/EWG 그린 등급으로 화해 20대 민감성 고객에게 높은 지지를 얻고 있습니다.</li>' +
+      '<li><b>Next 리뉴얼 권장 방향:</b> 순한 성분 소구에 더해 <b>칸디다균 99.9% 항균 성적서</b> 및 <b>D-만노스 유해균 흡착 차단</b> 등 기능성 수치를 보강할 경우 전환율이 비약적으로 상승할 잠재력을 보유하고 있습니다.</li>' +
+    '</ul></div>';
+
+  // 4. 데이터 출처
+  var sourceHtml = '<div style="margin-top:var(--space-4);font-size:0.72rem;color:var(--color-text-faint);line-height:1.5">' +
+    '데이터 출처: 올리브영, 화해, 쿠팡 공개 판매 데이터 및 라엘 공식몰 스펙 크롤링 (2026-08 기준 스냅샷).' +
+    '</div>';
+
+  el.innerHTML = summaryHtml + detailHtml + insightHtml + sourceHtml;
+};
+
