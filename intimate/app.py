@@ -2,10 +2,12 @@
 여성청결제 시장 상세페이지 벤치마킹 및 리뉴얼 전략 인터랙티브 Streamlit 대시보드.
 
 이 대시보드는 18개 주요 브랜드의 상세페이지 분석 데이터, 2x2 포지셔닝 맵, 6대 벤치마킹 매트릭스,
-Storyline 전개 순서 비교, 라엘(Target)의 4대 결핍 및 7개 섹션 리뉴얼 와이어프레임을 시각화합니다.
+상세페이지 실제 이미지 갤러리/비교 뷰어, Top-to-Bottom Storyline 비교,
+라엘(Target)의 심층 진단 및 타사 레퍼런스 2열 Side-by-Side 매칭, 7개 섹션 리뉴얼 와이어프레임을 시각화합니다.
 모든 시각화는 Plotly를 독점적으로 사용하며, 상단 필수 KPI 카드를 제공합니다.
 """
 
+import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -82,11 +84,54 @@ st.markdown("""
         border-radius: 8px 8px 0 0;
         font-weight: 600;
     }
+    .image-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .ref-box-problem {
+        background: #FFF1F2;
+        border-left: 4px solid #E11D48;
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 16px;
+    }
+    .ref-box-solution {
+        background: #F0FDF4;
+        border-left: 4px solid #16A34A;
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 16px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------
-# 2. 데이터 로드 및 전처리 (Caching)
+# 2. 이미지 안전 로딩 헬퍼 함수
+# -------------------------------------------------------------
+def get_safe_image_path(rel_path):
+    """
+    로컬 실행 또는 Streamlit Cloud 배포 환경 어디서든
+    상대 경로를 안전하게 탐색하여 파일 존재 여부를 검증하고 절대/상대 경로를 반환합니다.
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        rel_path,
+        os.path.join(base_dir, rel_path),
+        os.path.join(base_dir, "images", os.path.basename(rel_path)),
+        os.path.join("intimate", rel_path),
+        os.path.join("..", rel_path)
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
+# -------------------------------------------------------------
+# 3. 데이터 로드 및 전처리 (Caching)
 # -------------------------------------------------------------
 @st.cache_data
 def load_market_data():
@@ -427,10 +472,10 @@ def load_market_data():
 df = load_market_data()
 
 # -------------------------------------------------------------
-# 3. 헤더 및 필수 KPI 요약 카드 (Top Section)
+# 4. 헤더 및 필수 KPI 요약 카드 (Top Section)
 # -------------------------------------------------------------
 st.title("🌸 여성청결제 시장 분석 & 상세페이지 리뉴얼 대시보드")
-st.caption("18개 주요 브랜드 전수 벤치마킹 데이터 기반 · 포지셔닝 맵 · 벤치마킹 매트릭스 · 라엘 리뉴얼 전략 인터랙티브 뷰어")
+st.caption("18개 주요 브랜드 전수 벤치마킹 데이터 기반 · 포지셔닝 맵 · 벤치마킹 매트릭스 · 실제 이미지 갤러리 · 라엘 리뉴얼 전략 뷰어")
 
 st.markdown("---")
 
@@ -491,7 +536,7 @@ with kpi5:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -------------------------------------------------------------
-# 4. 사이드바 필터링 컨트롤
+# 5. 사이드바 필터링 컨트롤
 # -------------------------------------------------------------
 st.sidebar.header("🔍 데이터 필터 및 탐색")
 selected_cluster = st.sidebar.multiselect(
@@ -523,14 +568,15 @@ filtered_df = df[
 ]
 
 # -------------------------------------------------------------
-# 5. 메인 5대 탭 구조
+# 6. 메인 6대 탭 구조 (이미지 갤러리 및 라엘 벤치마킹 비교 탭 신설)
 # -------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 1. 시장 개요 & 가격 분석",
     "🗺️ 2. 2x2 포지셔닝 맵 (Interactive)",
     "🔍 3. 18개 브랜드 전수 비교 매트릭스",
-    "📑 4. 상세페이지 Storyline 비교",
-    "🚀 5. 라엘(Target) 리뉴얼 마스터 플랜"
+    "🖼️ 4. 상세페이지 이미지 갤러리 & 비교 뷰어",
+    "📑 5. 상세페이지 Storyline 전개 비교",
+    "🚀 6. 라엘(Target) 심층 진단 & 레퍼런스 벤치마킹"
 ])
 
 # -------------------------------------------------------------
@@ -543,7 +589,6 @@ with tab1:
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
-        # 클러스터별 판매가 비교 바 차트
         fig_price = px.bar(
             filtered_df.sort_values(by="sale_price", ascending=False),
             x="brand",
@@ -565,7 +610,6 @@ with tab1:
         st.plotly_chart(fig_price, use_container_width=True)
         
     with col_chart2:
-        # 용량 대비 100ml당 단가 산점도 (버블 차트)
         fig_scatter = px.scatter(
             filtered_df,
             x="volume_ml",
@@ -603,26 +647,18 @@ with tab2:
     st.subheader("🗺️ 여성청결제 시장 2x2 포지셔닝 맵 & Next White Space")
     st.caption("X축(더마/임상 과학 ↔ 클린/자연주의)과 Y축(문제성 해결 ↔ 데일리 마일드)에 따른 브랜드 분포와 라엘의 Next 목표 위치를 시각화합니다.")
     
-    # 2x2 Plotly 인터랙티브 산점도 생성
     fig_map = go.Figure()
     
-    # 사분면 배경 색상 영역 추가
-    # Q1 (좌상단: 메디컬 문제해결)
     fig_map.add_shape(type="rect", x0=1, y0=5.5, x1=5.5, y1=10, fillcolor="#F1F5F9", opacity=0.5, line_width=0, layer="below")
-    # Q2 (우상단: White Space - 클린 사이언스 펨테크)
     fig_map.add_shape(type="rect", x0=5.5, y0=5.5, x1=10, y1=10, fillcolor="#CCFBF1", opacity=0.7, line_width=2, line_color="#0D9488", layer="below")
-    # Q3 (좌하단: 더마 마일드)
     fig_map.add_shape(type="rect", x0=1, y0=1, x1=5.5, y1=5.5, fillcolor="#F8FAFC", opacity=0.5, line_width=0, layer="below")
-    # Q4 (우하단: 클린 오가닉 미니멀 - 라엘 현재)
     fig_map.add_shape(type="rect", x0=5.5, y0=1, x1=10, y1=5.5, fillcolor="#FEF2F2", opacity=0.5, line_width=1, line_color="#E11D48", layer="below")
     
-    # 사분면 라벨 주석
     fig_map.add_annotation(x=3.25, y=9.6, text="<b>클러스터 1: 메디컬 / 고기능 문제 해결형</b>", showarrow=False, font=dict(size=12, color="#1E293B"))
     fig_map.add_annotation(x=7.75, y=9.6, text="<b>★ Next White Space: 클린 사이언스 펨테크</b>", showarrow=False, font=dict(size=13, color="#0F766E"))
     fig_map.add_annotation(x=3.25, y=1.4, text="<b>클러스터 2: 더마 / 약산성 마일드형</b>", showarrow=False, font=dict(size=12, color="#1E293B"))
     fig_map.add_annotation(x=7.75, y=1.4, text="<b>클러스터 3: 클린뷰티 오가닉 미니멀형</b>", showarrow=False, font=dict(size=12, color="#991B1B"))
     
-    # 브랜드별 데이터 포인트 추가 (일반 경쟁사)
     comp_df = df[~df["is_target"]]
     fig_map.add_trace(go.Scatter(
         x=comp_df["x_score"],
@@ -636,7 +672,6 @@ with tab2:
         customdata=comp_df[["cluster", "main_copy", "sale_price"]].values
     ))
     
-    # 기준 제품 (라엘 현재 위치 - 레드 강조)
     target_row = df[df["is_target"]].iloc[0]
     fig_map.add_trace(go.Scatter(
         x=[target_row["x_score"]],
@@ -649,7 +684,6 @@ with tab2:
         hovertemplate="<b>%{text}</b><br>단 8가지 성분, COSMOS 인증<br>[한계] 항균/탈취 수치 부재로 고민해결 고객 이탈<extra></extra>"
     ))
     
-    # 기준 제품 (라엘 Next 목표 위치 - 틸 그린 강조)
     fig_map.add_trace(go.Scatter(
         x=[8.2],
         y=[8.8],
@@ -661,7 +695,6 @@ with tab2:
         hovertemplate="<b>★ 라엘 Next: 클린 사이언스 펨테크</b><br>COSMOS 천연 유기농 + D-만노스 부착 방어 + 칸디다 99.9% 항균<extra></extra>"
     ))
     
-    # 이동 경로 화살표 주석
     fig_map.add_annotation(
         x=8.2, y=8.5,
         ax=target_row["x_score"], ay=target_row["y_score"],
@@ -673,7 +706,6 @@ with tab2:
         arrowcolor="#0D9488"
     )
     
-    # 축 레이블 및 레이아웃 설정
     fig_map.update_layout(
         title="여성청결제 시장 포지셔닝 매트릭스 및 라엘 리뉴얼 이동 경로",
         xaxis=dict(title="◄ 더마 / 임상 과학 (Science & Medical) ────────────── 클린 / 비건 / 자연주의 (Clean & Natural) ►", range=[0.5, 10.5], showgrid=False, zeroline=False),
@@ -685,7 +717,6 @@ with tab2:
     
     st.plotly_chart(fig_map, use_container_width=True)
     
-    # 4대 클러스터 요약 카드
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.info("**클러스터 1: 메디컬 문제해결**\n- 질경이, 이너시아, 클리티, 비레시피\n- 칸디다 99.9% 항균, 99% 탈취\n- D-만노스, 11개국 특허 바이옴")
@@ -697,13 +728,12 @@ with tab2:
         st.error("**클러스터 3: 클린 오가닉 미니멀**\n- **라엘 현재 위치**, 아로마티카, 디어스킨\n- 단 8가지 성분, 100% 무향\n- [결핍] 항균/탈취 실증 수치 부재")
 
 # -------------------------------------------------------------
-# TAB 3: 18개 브랜드 전수 비교 매트릭스 & 상세 탐색기
+# TAB 3: 18개 브랜드 전수 비교 매트릭스 (라엘 최상단 고정)
 # -------------------------------------------------------------
 with tab3:
     st.subheader("🔍 18개 브랜드 1:1 상세 비교 매트릭스 & 상세 탐색기")
-    st.caption("표에서 원하는 브랜드를 선택하거나 검색하여 핵심 6대 요소(후킹, 스토리, 성분, 임상, 가격, 신뢰장치)를 상세 비교할 수 있습니다.")
+    st.caption("라엘(★ 기준 타깃)을 최상단으로 하여 18개 전 브랜드의 상세 분석 카드를 한 페이지에서 스크롤하여 전체 비교할 수 있습니다.")
     
-    # 인터랙티브 데이터 테이블 노출
     display_df = filtered_df[["brand", "product_name", "cluster", "sale_price", "volume_ml", "unit_price_100ml", "main_copy", "clinical_proof"]]
     st.dataframe(
         display_df.rename(columns={
@@ -717,16 +747,12 @@ with tab3:
             "clinical_proof": "공인 임상/테스트 수치"
         }),
         use_container_width=True,
-        height=320
+        height=300
     )
     
-    # -------------------------------------------------------------
-    # 18개 전 브랜드 상세 카드 연속 렌더링 (라엘 최상단 고정)
-    # -------------------------------------------------------------
+    st.markdown("---")
     st.markdown("### 📋 18개 전 브랜드 상세 소구점 & 6대 요소 전수 비교 (라엘 최상단)")
-    st.caption("선택 없이 18개 브랜드의 상세 분석 카드를 한 페이지에서 스크롤하여 전체 비교할 수 있습니다.")
     
-    # 라엘(Target)을 가장 위로 정렬
     target_df = filtered_df[filtered_df["is_target"]]
     non_target_df = filtered_df[~filtered_df["is_target"]]
     ordered_df = pd.concat([target_df, non_target_df])
@@ -734,7 +760,6 @@ with tab3:
     for idx, row in ordered_df.iterrows():
         is_target = row["is_target"]
         
-        # 라엘(Target)은 특별 강조 테두리와 배경 적용
         if is_target:
             card_border_style = "border: 2px solid #3B82F6; background: #F8FAFC; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);"
             badge_html = '<span style="background-color: #2563EB; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.85rem;">★ 분석 기준 타깃 제품 (Target)</span>'
@@ -777,11 +802,112 @@ with tab3:
                 
             st.markdown("<hr style='margin: 10px 0 20px 0; border: 0; border-top: 1px dashed #CBD5E1;'>", unsafe_allow_html=True)
 
-
 # -------------------------------------------------------------
-# TAB 4: 상세페이지 전개 순서(Storyline) 비교 분석
+# TAB 4: 상세페이지 이미지 갤러리 & 비교 뷰어 (신규 기능)
 # -------------------------------------------------------------
 with tab4:
+    st.subheader("🖼️ 주요 브랜드 상세페이지 실제 컷 갤러리 & 비교 뷰어")
+    st.caption("수집된 실제 상세페이지 상단 핵심 컷(메인 후킹 컷, 성분/포뮬러 컷, 임상 수치 컷, 제형 컷)을 카피라이팅 및 소구 기법 캡션과 함께 비교합니다.")
+    
+    brand_gallery_choice = st.selectbox(
+        "상세페이지 컷을 확인할 브랜드를 선택하세요:",
+        options=["클리티 (Cleety) - 8대 임상 & 5대 특허", "뷰티레시피 (B.RECIPE) - 99.9% 항균 & 더마", "이너생각 (Saengak) - 휩드 텍스처 & 가려움 개선"]
+    )
+    
+    if "클리티" in brand_gallery_choice:
+        st.markdown("#### 💎 클리티(Cleety) 락토 리쥬브네이팅 젤링워시 상세페이지 핵심 컷")
+        st.info("💡 **소구 특징**: 5대 특허 엠블럼과 8대 공인 임상 성적서 원본을 상단 3초 존에 배치하여 압도적인 의학적 신뢰감을 조성합니다.")
+        
+        g1, g2, g3, g4 = st.columns(4)
+        
+        with g1:
+            p1 = get_safe_image_path("images/cleety/cleety_detail_01.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_01.jpg")
+            if p1:
+                st.image(p1, caption="[Hero 컷] 5대 특허 & 8대 임상 엠블럼", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'단순한 세정이 아닌 Y존 리쥬브네이팅의 시작'*\n\n📌 **기법**: 3초 만에 시선을 사로잡는 특허 인증마크 전면 배치")
+            
+        with g2:
+            p2 = get_safe_image_path("images/cleety/cleety_detail_02.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_02.jpg")
+            if p2:
+                st.image(p2, caption="[문제 공감 컷] Y존 7대 고민 자가진단표", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'씻어도 사라지지 않는 찝찝함과 냄새, 왜 그럴까요?'*\n\n📌 **기법**: 고객 결핍을 자극하는 체크리스트 전개")
+            
+        with g3:
+            p3 = get_safe_image_path("images/cleety/cleety_detail_05.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_05.jpg")
+            if p3:
+                st.image(p3, caption="[임상 실증 컷] 칸디다 99.3% & 탈취 99.5%", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'숫자로 확인하는 놀라운 99.3% 유해균 케어'*\n\n📌 **기법**: 시험 성적서 원본 스캔본 및 균 배양 샬레 비교 컷")
+            
+        with g4:
+            p4 = get_safe_image_path("images/cleety/cleety_detail_08.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_08.jpg")
+            if p4:
+                st.image(p4, caption="[성분 솔루션 컷] 제주해수염 & 유산균", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'특허 TEFLOSE®로 유해균 부착 원천 방어'*\n\n📌 **기법**: 3D 바이오 메커니즘 일러스트레이션")
+
+    elif "뷰티레시피" in brand_gallery_choice:
+        st.markdown("#### 🧪 뷰티레시피(B.RECIPE) 리틀머메이드 프로바이오틱스 젤 상세페이지 핵심 컷")
+        st.info("💡 **소구 특징**: 2대 질염 원인균(칸디다 99.99%, 가드넬라 99.84%) 실명 명시와 독일 더마테스트 EXCELLENT 마크로 구매 저항을 완벽 해소합니다.")
+        
+        g1, g2, g3, g4 = st.columns(4)
+        
+        with g1:
+            p1 = get_safe_image_path("images/beautyrecipe/brecipe_img_01.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_01.jpg")
+            if p1:
+                st.image(p1, caption="[Hero 컷] 독일 더마 EXCELLENT & 99.9% 항균", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'독일 더마테스트 최고등급 획득 안심 포뮬러'*\n\n📌 **기법**: 글로벌 공신력 엠블럼 상단 즉각 노출")
+            
+        with g2:
+            p2 = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_03.jpg")
+            if p2:
+                st.image(p2, caption="[임상 실증 컷] 2대 질염균 99.9% 성적서", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'칸디다균 99.99%, 가드넬라균 99.84% 실증'*\n\n📌 **기법**: 한국피부과학연구원 공인 시험성적서 원본 공개")
+            
+        with g3:
+            p3 = get_safe_image_path("images/beautyrecipe/brecipe_img_06.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_06.jpg")
+            if p3:
+                st.image(p3, caption="[성분 컷] 특허 여성세정제 조성물 Eve Solution™", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'특허 제10-2061302호 항균/소취 독자 조성물'*\n\n📌 **기법**: 특허 등록 번호 명시를 통한 기술력 정당화")
+            
+        with g4:
+            p4 = get_safe_image_path("images/beautyrecipe/brecipe_img_08.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_08.jpg")
+            if p4:
+                st.image(p4, caption="[제형 컷] 약산성 pH 3.5~4.5 수분 젤", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'건조함 없는 고농축 수분 젤 텍스처'*\n\n📌 **기법**: pH 리트머스 시험지 및 2주 보습 30.79% 개선 실증")
+
+    else:
+        st.markdown("#### ☁️ 이너생각(Saengak) 밸런싱 휩드워시 상세페이지 핵심 컷")
+        st.info("💡 **소구 특징**: 에어로졸 캔 공법의 생크림 휩 텍스처, 가려움증 67.5% 개선 임상, '100% 무료 환불 보장제'로 전환율을 극대화합니다.")
+        
+        g1, g2, g3, g4 = st.columns(4)
+        
+        with g1:
+            p1 = get_safe_image_path("images/saengak/saengak_detail_01.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_01.png")
+            if p1:
+                st.image(p1, caption="[Hero 컷] 생크림 휩 텍스처 & 가려움 개선", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'단 한 번의 펌핑으로 완성되는 쫀쫀한 생크림 휩'*\n\n📌 **기법**: 마찰 자극 없는 거품 볼륨감 시각화")
+            
+        with g2:
+            p2 = get_safe_image_path("images/saengak/saengak_detail_06.jpg") or get_safe_image_path("intimate/images/saengak/saengak_detail_06.jpg")
+            if p2:
+                st.image(p2, caption="[성분 컷] 한방 사상자 추출물 (오스톨)", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'조선왕실 비책 사상자의 놀라운 진정 효과'*\n\n📌 **기법**: SCI급 논문 3편 인용으로 전통 한방 원료의 과학적 입증")
+            
+        with g3:
+            p3 = get_safe_image_path("images/saengak/saengak_detail_14.jpg") or get_safe_image_path("intimate/images/saengak/saengak_detail_14.jpg")
+            if p3:
+                st.image(p3, caption="[임상 실증 컷] 가려움증 67.5% 개선 성적서", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'단 2주 만에 확인된 가려움증 67.5% 완화'*\n\n📌 **기법**: 고객 최다 고민인 가려움에 대한 정량 수치 그래프")
+            
+        with g4:
+            p4 = get_safe_image_path("images/saengak/saengak_detail_25.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_25.png")
+            if p4:
+                st.image(p4, caption="[전환 장치 컷] 100% 무료 환불 보장제", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'사용 후 불만족 시 100% 환불해 드립니다'*\n\n📌 **기법**: 구매 저항선을 0으로 낮추는 강력한 리스크 리버설")
+
+# -------------------------------------------------------------
+# TAB 5: 상세페이지 전개 순서(Storyline) 비교 분석
+# -------------------------------------------------------------
+with tab5:
     st.subheader("📑 주요 브랜드 상세페이지 메시지 전개 순서(Top-to-Bottom) 비교")
     st.caption("상세페이지의 스크롤 흐름에 따른 5단계 전환 퍼널(Hero 후킹 ──► 문제 공감 ──► 기술 솔루션 ──► 임상 실증 ──► 가치 락인)을 대조합니다.")
     
@@ -806,72 +932,158 @@ with tab4:
     """)
 
 # -------------------------------------------------------------
-# TAB 5: 라엘(Target) 결핍 & 리뉴얼 마스터 플랜
+# TAB 6: 라엘(Target) 심층 진단 & 레퍼런스 벤치마킹
 # -------------------------------------------------------------
-with tab5:
-    st.subheader("🚀 라엘(Rael) 여성청결제 초격차 리뉴얼 마스터 플랜")
-    st.caption("4대 결핍 분석을 극복하고, '클린 사이언스 펨테크 1등'으로 도약하기 위한 Before & After 카피라이팅 및 7개 섹션 와이어프레임입니다.")
+with tab6:
+    st.subheader("🚀 라엘(Rael) 여성청결제 심층 진단 및 타사 레퍼런스 비교 벤치마킹")
+    st.caption("라엘의 현재 키메시지와 결핍을 진단하고, 타사의 성공적인 상세페이지 이미지 컷을 Side-by-Side로 대조하여 즉시 적용 가능한 리뉴얼 전략을 제시합니다.")
     
-    col_gap1, col_gap2 = st.columns(2)
+    # 1. 라엘 현재 키메시지 및 결핍 진단
+    st.markdown("### 1️⃣ 라엘(Rael)의 현재 포지션 진단 및 결핍(Gap) 분석")
     
-    with col_gap1:
-        st.error("""
-        ### 🔴 라엘의 4대 핵심 결핍 (Gap)
-        1. **정량 임상 수치 부재**: 항균율/탈취율 수치가 없어 질염/냄새 고민 고객 이탈
-        2. **독자 바이옴 스토리 부재**: 단순 8가지 원료 나열로 '기본 워시' 인식 위험
-        3. **씻김성(Quick Rinse) 증명 부족**: 잔여물 배출 및 세정 쾌감 시각화 결여
-        4. **친환경 리필 번들 부족**: 150ml 단품 위주로 객단가 및 장기 락인 한계
-        """)
+    diag_col1, diag_col2, diag_col3 = st.columns(3)
+    
+    with diag_col1:
+        st.markdown("""
+        <div class="ref-box-solution">
+            <h4 style="color: #16A34A; margin-top: 0;">🟢 현재 메인 키메시지</h4>
+            <ul>
+                <li><strong>아마존 1위 글로벌 신뢰도:</strong> 페미닌 케어 전문 브랜드 헤리티지</li>
+                <li><strong>COSMOS 천연 인증:</strong> 유기농·순한 성분 보증</li>
+                <li><strong>비건 안심 처방:</strong> 100% 식물 유래 계면활성제</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
-    with col_gap2:
-        st.success("""
-        ### 🟢 라엘의 4대 리뉴얼 해결책 (Action)
-        1. **칸디다/가드넬라 99.9% 항균 & 99% 소취 성적서 실물 전면 노출**
-        2. **식물 유래 D-만노스 유해균 점막 부착 차단 3D 바이오 메커니즘 삽입**
-        3. **5초 퀵 린스 잔여물 제로 비커 비교 실험 컷 도입**
-        4. **[본품 150ml + 친환경 리필 150ml] 실속 더블 기획(19,900원) 런칭**
-        """)
+    with diag_col2:
+        st.markdown("""
+        <div class="ref-box-solution">
+            <h4 style="color: #16A34A; margin-top: 0;">🟢 현재 후킹 포인트</h4>
+            <ul>
+                <li><strong>단 8가지 전성분 미니멀:</strong> 불필요한 화학 성분 배제</li>
+                <li><strong>극민감 피부 저자극:</strong> 매일 쓰는 데일리 밸런싱</li>
+                <li><strong>100% 무향 안심:</strong> 인공 향료 알레르기 제로</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with diag_col3:
+        st.markdown("""
+        <div class="ref-box-problem">
+            <h4 style="color: #E11D48; margin-top: 0;">🔴 현재의 치명적 결핍 (Gap)</h4>
+            <ul>
+                <li><strong>직접적 신체 고민 해결력 부재:</strong> 냄새·분비물·가려움 개선 수치 결여</li>
+                <li><strong>정량 항균/탈취 실증 성적서 부재:</strong> 칸디다 99.9% 등 수치 없음</li>
+                <li><strong>'순하지만 기능은 약한 워시' 오인:</strong> 문제 해결형 고객 대거 이탈</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
     st.markdown("---")
     
-    # 3대 헤드카피 Before & After 탭
-    st.markdown("### ✨ 도입부 카피라이팅 Before & After 혁신")
+    # 2. 라엘 상세페이지 핵심 보완 전략 (Before & After)
+    st.markdown("### 2️⃣ 라엘 상세페이지 핵심 보완 전략 & 헤드카피 Before & After")
     
-    st.warning("**[Before 현재 카피]**: *'단 8가지 전성분, COSMOS 천연 인증 순한 여성청결제'*  \n➜ 이탈 원인: 제품 스펙의 단순 설명문으로 고객의 냄새/가려움 고통 공감 실패")
+    st.markdown("""
+    | 보완 영역 | 기존 상세페이지 (Before) | 🌟 리뉴얼 개선 전략 (After) |
+    | :--- | :--- | :--- |
+    | **도입부 후킹** | *"단 8가지 전성분, COSMOS 천연 인증 순한 청결제"* (단순 스펙 설명) | **"씻어도 반복되는 찝찝함과 냄새, 단 8가지 천연 성분으로 말끔히 비워내다"** (고민 공감 + 해결) |
+    | **임상/효능 실증** | 피부 저자극 테스트 완료 텍스트 1줄 (수치 없음) | **칸디다균 99.9% 항균 성적서 & 99% 소취 그래프 & 24시간 장벽 보습 수치 전면 배치** |
+    | **글로벌 1위 엠블럼** | 하단 텍스트로 단순 언급 | **상단 3초 Hero 존에 [아마존 1위] + [COSMOS 천연] + [99.9% 항균] 골드 엠블럼 배치** |
+    | **기획 오퍼** | 150ml 본품 단품 위주 | **[올리브영 단독] 본품 150ml + 친환경 리필 150ml 더블 기획 (19,900원)** |
+    """)
     
-    copy_tab1, copy_tab2, copy_tab3 = st.tabs([
-        "💡 컨셉 A (직관적 고민 해결형)",
-        "⭐ 컨셉 B (임상 수치 증명형 - 추천)",
-        "🌿 컨셉 C (데일리 클린 밸런스형)"
-    ])
+    st.markdown("---")
     
-    with copy_tab1:
+    # 3. 타사 상세페이지 예시 이미지 벤치마킹 매칭 (Side-by-Side 2열 비교)
+    st.markdown("### 3️⃣ 타사 상세페이지 예시 이미지 벤치마킹 매칭 (Side-by-Side 비교)")
+    st.caption("타사 베스트 프랙티스 이미지 컷을 직접 대조하여 라엘 상세페이지의 구체적 구현 방안을 도출합니다.")
+    
+    # 레퍼런스 1: 직관적 고민 후킹
+    st.markdown("#### ① [직관적 고민 후킹] — 문제 제기 & 자가진단 체크리스트")
+    col_ref1_img, col_ref1_text = st.columns([1.2, 1.8])
+    
+    with col_ref1_img:
+        p_ref1 = get_safe_image_path("images/cleety/cleety_detail_02.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_02.jpg")
+        if p_ref1:
+            st.image(p_ref1, caption="[타사 레퍼런스: 클리티] 7대 Y존 자가진단 체크리스트 컷", use_container_width=True)
+            
+    with col_ref1_text:
         st.markdown("""
-        > ## **"씻어도 반복되는 찝찝함과 냄새, 단 8가지 순수한 천연 성분으로 말끔히 비워내다"**
-        **불필요한 화학 성분은 덜어내고, Y존을 괴롭히는 유해균과 악취만 99.9% 완벽 케어.**  
-        **COSMOS 천연 인증 거품으로 씻는 순간부터 하루 종일 개운하고 편안하게.**
-        """)
+        <div class="ref-box-solution">
+            <h5 style="margin-top:0;">💡 타사 소구 기법 분석:</h5>
+            <ul>
+                <li><strong>고객 결핍 정밀 타깃팅:</strong> "분비물, 불쾌한 냄새, 가려움, 속당김" 등 일상 속 7대 불편 증상을 체크박스로 제시하여 고객의 즉각적 공감(Aha-moment) 유도.</li>
+                <li><strong>문제 원인 규명:</strong> "단순히 물로만 씻거나 알칼리 비누를 쓸 때 무너지는 약산성 환경"을 시각 자료로 고발.</li>
+            </ul>
+            <h5 style="color: #0F766E;">🎯 라엘 상세페이지 적용 방안:</h5>
+            <ul>
+                <li><strong>도입부 2섹션에 배치:</strong> <em>"열심히 씻는데도 왜 찝찝함과 냄새는 반복될까요?"</em> 질문형 헤드카피 삽입.</li>
+                <li><strong>3대 원인 기전 시각화:</strong> ① 높은 경피 흡수율, ② 알칼리 세정으로 인한 밸런스 붕괴, ③ 유해균 점막 부착을 인포그래픽으로 설명.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
-    with copy_tab2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 레퍼런스 2: 임상 수치 시각화
+    st.markdown("#### ② [임상 수치 시각화] — 99.9% 항균 & 공인 시험 성적서 원본 노출")
+    col_ref2_img, col_ref2_text = st.columns([1.2, 1.8])
+    
+    with col_ref2_img:
+        p_ref2 = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_03.jpg")
+        if p_ref2:
+            st.image(p_ref2, caption="[타사 레퍼런스: 뷰티레시피] 2대 질염균 99.9% 성적서 원본 컷", use_container_width=True)
+            
+    with col_ref2_text:
         st.markdown("""
-        > ## **"COSMOS 천연 인증에 칸디다균 99.9% 항균을 더하다 — 순수함과 기능성의 완벽한 증명"**
-        **식물 유래 D-만노스로 유해균 점막 부착을 차단하고, 피부 자극 지수 0.00%로 완성한 클린 바이오 포뮬러.**  
-        **단 8가지 전성분으로 입증한 99% 탈취력과 건강한 약산성 pH 밸런스.**
-        """)
+        <div class="ref-box-solution">
+            <h5 style="margin-top:0;">💡 타사 소구 기법 분석:</h5>
+            <ul>
+                <li><strong>구체적 원인균 실명 명시:</strong> 단순 '유해균'이 아닌 <strong>'칸디다균 99.99%', '가드넬라균 99.84%'</strong>를 정확한 숫자로 표기.</li>
+                <li><strong>공인 시험기관 실명 성적서:</strong> 한국피부과학연구원 및 KOTITI 시험연구원의 직인이 찍힌 성적서 원본을 클로즈업하여 의학적 신뢰 구축.</li>
+            </ul>
+            <h5 style="color: #0F766E;">🎯 라엘 상세페이지 적용 방안:</h5>
+            <ul>
+                <li><strong>정량 수치 성적서 3종 실물 컷 삽입:</strong> ① 칸디다균 99.9% 항균 성적서, ② 암모니아/트리메틸아민 99% 소취 성적서, ③ 24시간 장벽 수분 개선 그래프.</li>
+                <li><strong>COSMOS 천연 인증과 결합:</strong> <em>"순수한 천연 유기농 성분으로 입증한 놀라운 99.9% 항균력"</em>으로 반전 소구 완성.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
-    with copy_tab3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 레퍼런스 3: 텍스처 및 씻김성(Quick Rinse)
+    st.markdown("#### ③ [텍스처 & 씻김성] — 마이크로 퀵 린스 폼 & 점막 잔여물 제로")
+    col_ref3_img, col_ref3_text = st.columns([1.2, 1.8])
+    
+    with col_ref3_img:
+        p_ref3 = get_safe_image_path("images/saengak/saengak_detail_01.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_01.png")
+        if p_ref3:
+            st.image(p_ref3, caption="[타사 레퍼런스: 이너생각] 고밀도 마찰 제로 폼 컷", use_container_width=True)
+            
+    with col_ref3_text:
         st.markdown("""
-        > ## **"내 몸 가장 연약한 곳이니까 — 단 8가지 성분으로 지키는 건강한 Y존 마이크로바이옴"**
-        **흡수율 높은 점막을 위해 유해 화학 성분은 0%, 꼭 필요한 유익균 보호 원료만 정직하게 처방.**  
-        **매일 닿아도 자극 없는 약산성 천연 버블 폼으로 시작하는 당당한 데일리 웰니스.**
-        """)
+        <div class="ref-box-solution">
+            <h5 style="margin-top:0;">💡 타사 소구 기법 분석:</h5>
+            <ul>
+                <li><strong>마찰 자극 제로 강조:</strong> 손바닥으로 비빌 필요 없는 몽글몽글한 미세 거품 제형 시각화.</li>
+                <li><strong>잔여감 없는 쾌감:</strong> 물에 닿는 즉시 5~7초 만에 씻겨 내려가는 '잔여물 제로 퀵 린스' 인체적용시험 결과 강조 (아토팜/이너생각).</li>
+            </ul>
+            <h5 style="color: #0F766E;">🎯 라엘 상세페이지 적용 방안:</h5>
+            <ul>
+                <li><strong>투명 비커 세정 실험 컷:</strong> 비누 잔여물이 남지 않고 물에 완벽히 용해되는 클린 세정 실험 비교 컷 삽입.</li>
+                <li><strong>식물 유래 코코넛 버블:</strong> <em>"손 마찰 제로, 5초 만에 잔여물 없이 씻겨 내려가는 퀵 린스 폼"</em> 헤드카피 적용.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         
     st.markdown("---")
     
-    # 7개 섹션 와이어프레임 아코디언
-    st.markdown("### 📱 상세페이지 7개 섹션 리뉴얼 마스터 와이어프레임")
+    # 4. 7개 섹션 풀 와이어프레임 스토리보드
+    st.markdown("### 4️⃣ 라엘 상세페이지 7개 섹션 리뉴얼 마스터 와이어프레임")
     
-    with st.expander("Section 1. 도입부 / 3초 후킹 (Hero & Hooking)", expanded=True):
+    with st.expander("Section 1. 도입부 / 3초 Hero 존 (COSMOS + 99.9% 항균 + 아마존 1위)", expanded=True):
         st.markdown("""
         - **비주얼**: 맑은 물방울과 몽글몽글한 미세 거품 위에 본품 용기 클로즈업
         - **3대 신뢰 엠블럼**: `[COSMOS NATURAL 인증]` + `[칸디다균 99.9% 항균]` + `[미국 아마존 1위 라엘]`
