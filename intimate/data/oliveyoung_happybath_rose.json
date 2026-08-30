@@ -1,0 +1,25 @@
+{
+  "product_name": "해피바스 pH4.5 약산성 여성청결제 로즈 (300ml / 250g)",
+  "brand": "해피바스 (HAPPY BATH / 아모레퍼시픽)",
+  "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000154324",
+  "goods_no": "A000000154324",
+  "category": "위생용품 > Y존케어 > 여성청결제",
+  "volume": "300ml (또는 250g 폼 워시 본품)",
+  "texture": "부드럽고 풍성한 저자극 버블 폼 (Bubble Foam) 제형",
+  "prices": {
+    "original_price": "12,000원 ~ 13,000원",
+    "sale_price": "8,900원 ~ 9,900원 (약 25~30% 할인)",
+    "bundle_deal": "본품 단품 및 기획 세트 (쑥/로즈 라인업)"
+  },
+  "key_ingredients_and_technology": {
+    "botanical_water": "다마스크 장미꽃수 (Rosa Damascena Flower Water) 함유로 로즈 생기 및 은은한 플로럴 케어",
+    "probiotics_ferment": "락토바실러스 발효용해물 함유로 Y존 미생물 밸런스 유지",
+    "ph_formula": "외음부 최적 산도 맞춤 pH 4.5 약산성 처방",
+    "clean_formula": "10-Free 안심 처방 (동물성 원료, 광물성 오일, 합성 색소, 파라벤, PEG 등 10가지 유해 성분 무첨가)"
+  },
+  "clinical_and_safety_tests": {
+    "dermatologist_test": "피부과 테스트 완료",
+    "eye_irritation_alternative_test": "안자극 대체 테스트 완료 (점막 부위 자극 최소화)",
+    "mild_cleansing": "생리 전후 분비물 및 불쾌취 마일드 소취 케어"
+  }
+}

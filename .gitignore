@@ -1,79 +1,48 @@
-# Python 데이터 분석 프로젝트용 .gitignore
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
-*.egg
-*.egg-info/
-.dist-info/
+.Python
+env/
 build/
 develop-eggs/
+dist/
+downloads/
+eggs/
 .eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Install logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Virtual environment
+# Virtual Environments
 .venv/
 venv/
 ENV/
-env/
+env.bak/
+venv.bak/
 
-# Jupyter Notebook
-.ipynb_checkpoints/
-
-# Data files (optional)
-*.csv
-*.tsv
-*.xls
-*.xlsx
-*.h5
-*.hdf5
-*.parquet
-*.feather
-*.pkl
-
-# Logs and outputs
-logs/
-output/
-*.log
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE / editor folders
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-
-# Exclude all hidden files and folders
-.*
-!/.gitignore
-!/.git/
-
-# Configuration and Environment files (설정 및 환경변수 파일)
+# Environment Variables
 .env
 .env.local
-.env.*
-*.env
-config.json
-config.yaml
-config.yml
 
-# Agent settings and CLI (시스템 에이전트 및 CLI 설정)
-.agents/
-.gemini/
-/brain/
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
-# Streamlit secrets (배포 시 관리되는 로컬 비밀키 설정)
-.streamlit/secrets.toml
-.streamlit/
-
+# Temporary & Log files
+*.log
+.tempmediaStorage/
+~$*.xlsx
+~$*.pptx
+.system_generated/

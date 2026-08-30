@@ -1,0 +1,25 @@
+{
+  "product_name": "유리아쥬 진피 마일드 젤 (200ml / 500ml)",
+  "brand": "유리아쥬 (URIAGE / 프랑스 더마코스메틱)",
+  "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000120689",
+  "goods_no": "A000000120689",
+  "category": "위생용품 > Y존케어 > 여성청결제",
+  "volume": "200ml (데일리 튜브) / 500ml (패밀리 대용량 펌프) / 50ml (휴대용)",
+  "texture": "부드럽고 조밀한 미세 거품을 형성하는 마일드 수분 젤 (Refreshing Gel) 제형",
+  "prices": {
+    "original_price": "18,000원 (200ml) / 38,000원 (500ml)",
+    "sale_price": "12,900원 (200ml) / 24,900원 ~ 28,500원 (500ml, 약 25~35% 할인)",
+    "bundle_deal": "500ml 대용량 단품, 200ml 1+1 더블 기획 세트"
+  },
+  "key_ingredients_and_technology": {
+    "patented_glyco_gyn": "유리아쥬 독자 특허 GLYCO-GYN COMPLEX (글리코 에스테르 + 에델바이스 추출물 복합체)",
+    "thermal_water": "프랑스 알프스 유리아쥬 천연 등장액 온천수 (풍부한 미네랄, 피부 진정 및 수분 장벽 강화)",
+    "ph_formula": "외음부 생리적 약산성 pH 5.5 밸런스 처방 (락틱애씨드 함유)",
+    "clean_formula": "Soap-Free (무비누 처방), 파라벤 무첨가 저자극 젤 포뮬러"
+  },
+  "clinical_and_safety_tests": {
+    "gynaecological_test": "프랑스 산부인과 및 피부과 전문의 감독 하 임상 테스트 완료",
+    "target_age": "만 4세 이상 어린이부터 임산부까지 온 가족 사용 적합",
+    "user_satisfaction": "사용자의 92%가 점막 건조 없는 순한 진정 세정 만족"
+  }
+}

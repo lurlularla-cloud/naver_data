@@ -1,0 +1,25 @@
+{
+  "product_name": "바솔 이너 밸런싱 포밍 워시 (150ml / 150ml+리필 150ml 기획)",
+  "brand": "바솔 (BASOL / W케어)",
+  "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000204867",
+  "goods_no": "A000000204867",
+  "category": "위생용품 > Y존케어 > 여성청결제",
+  "volume": "150ml (본품 버블 폼) / 150ml+리필 150ml 더블 기획",
+  "texture": "누르면 즉시 나오는 촘촘하고 푹신한 소프트 마이크로 버블 폼 (Micro Bubble Foam)",
+  "prices": {
+    "original_price": "22,000원 (단품) / 36,000원 (본품+리필 기획)",
+    "sale_price": "15,900원 ~ 17,900원 (단품) / 23,900원 ~ 24,000원 (기획 세트, 약 33% 할인)",
+    "bundle_deal": "올리브영 단독 [본품 150ml + 리필 150ml] 실속 더블 기획"
+  },
+  "key_ingredients_and_technology": {
+    "probiotics_ferment": "락토바실러스 발효용해물 (Y존 마이크로바이옴 생태계 보호)",
+    "tea_tree_and_cica": "티트리잎 오일 & 병풀추출물 (불쾌취 원인균 완화 및 예민 부위 급속 진정)",
+    "ph_formula": "외음부 최적 약산성 pH 4.5 ~ 5.5 밸런싱 처방",
+    "clean_formula": "EWG 그린 등급 베이스 & 피부 유해 성분 무첨가 클린 포뮬러"
+  },
+  "clinical_and_safety_tests": {
+    "antibacterial_test": "칸디다균 99.9% 항균 테스트 완료",
+    "deodorization_test": "암모니아 및 트리메틸아민 소취 테스트 완료",
+    "hypoallergenic": "피부 자극 지수 0.00 저자극 테스트 완료 (녹색소비자연대 안전기준 적합 판정)"
+  }
+}

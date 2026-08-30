@@ -1,0 +1,49 @@
+{
+  "product_name": "이너생각 밸런싱 휩드워시 (180ml)",
+  "brand": "이너생각 (INNER SAENGAK)",
+  "url": "https://saengak.co.kr/product/%EC%9D%B4%EB%84%88%EC%83%9D%EA%B0%81-%EB%B0%B8%EB%9F%B0%EC%8B%B1-%ED%9C%A9%EB%93%9C%EC%9B%8C%EC%8B%9C-180ml/102/category/1/display/2/?icid=MAIN.product_listmain_1",
+  "volume": "180ml",
+  "prices": {
+    "original_price": "36,000원",
+    "sale_price": "27,000원 (25% 할인)",
+    "coupon_lowest_price": "18,000원 (최대 쿠폰 적용 시)",
+    "shipping": "3,000원 (40,000원 이상 구매 시 무료배송)"
+  },
+  "bundle_options": [
+    "단품 : 이너생각 밸런싱 휩드워시 180ml 1개 (27,000원)",
+    "[2+1 기획] 이너생각 밸런싱 휩드워시 180ml 3개 (59,000원 / 쿠폰 적용 시 54,000원, 개당 18,000원)"
+  ],
+  "special_gifts": {
+    "over_50000": "페미닌 클렌징 티슈 15매 증정",
+    "over_80000": "플리츠 파우치 증정"
+  },
+  "guarantee_policy": "100% 환불 보장제 (제품 수령 후 14일 이내, 1/3 이하 사용 시 전액 환불)",
+  "clinical_results": {
+    "candida_reduction": "99.9% 감소 (1회 사용 즉각 효과 / 휴먼 피부임상시험센터)",
+    "ecoli_reduction": "99.9% 감소 (1회 사용 즉각 효과 / 휴먼 피부임상시험센터)",
+    "deodorization_trimethylamine": "89.3% 감소 (한국표준시험연구원)",
+    "itchiness_relief": "67.5% 완화 (건조에 의한 가려움 / 한국인터텍테스팅서비스)",
+    "skin_soothing": "12.6% 개선 (한국인터텍테스팅서비스)",
+    "skin_irritation_index": "0.00 무자극 판정 (마리디엠 피부과학연구소)"
+  },
+  "safety_certifications": [
+    "한국 비건 인증원 공식 비건 인증 (동물성 원료 0%)",
+    "독일 더마테스트(Dermatest) 최고 등급 EXCELLENT 획득",
+    "산부인과 전문의 문진 테스트 완료",
+    "21가지 유해/걱정 성분 불검출 성적서 (KOTITI 시험연구원)",
+    "약산성 pH 5.0 ~ 5.5 포뮬러",
+    "알러젠 프리 로사 가데니아 향"
+  ],
+  "downloaded_images": [
+    "intimate/images/saengak/saengak_detail_01.png",
+    "intimate/images/saengak/saengak_detail_02.jpg",
+    "intimate/images/saengak/saengak_detail_05.png",
+    "intimate/images/saengak/saengak_detail_12.jpg",
+    "intimate/images/saengak/saengak_detail_13.png",
+    "intimate/images/saengak/saengak_detail_14.jpg",
+    "intimate/images/saengak/saengak_detail_15.png",
+    "intimate/images/saengak/saengak_detail_16.jpg",
+    "intimate/images/saengak/saengak_detail_17.jpg",
+    "intimate/images/saengak/saengak_detail_21.jpg"
+  ]
+}

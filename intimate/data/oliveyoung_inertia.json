@@ -1,0 +1,27 @@
+{
+  "product_name": "이너시아 더 퓨어 3X 마이크로바이옴 여성청결제 (150ml)",
+  "brand": "이너시아 (INERTIA / 카이스트 여성 과학자 펨테크)",
+  "url": "https://www.oliveyoung.co.kr/store/goods/getGoodsDetail.do?goodsNo=A000000191655",
+  "goods_no": "A000000191655",
+  "category": "위생용품 > Y존케어 > 여성청결제",
+  "volume": "150ml (마이크로 버블 폼 본품)",
+  "texture": "부드럽고 쫀쫀한 초미세 포밍 거품 (Micro Foaming Bubble)",
+  "prices": {
+    "original_price": "25,900원",
+    "sale_price": "22,900원 (약 12~15% 할인, 프리미엄 포지셔닝)",
+    "bundle_deal": "150ml 본품 단품 및 올리브영 단독 기획"
+  },
+  "key_ingredients_and_technology": {
+    "kaist_science": "KAIST 출신 여성 과학자 연구진이 설계한 과학적 바이오 포뮬러",
+    "glacier_water_base": "캐나다 청정 빙하수 베이스 (풍부한 미네랄 및 활성 수소로 깊은 진정 및 수분 공급)",
+    "microbiome_synbiotics": "프리 & 프로바이오틱스 (락토바실러스 발효 성분으로 Y존 미생물 생태계 및 약산성 pH 보호)",
+    "anti_adhesion_formula": "D-만노스(D-Mannose) & 크랜베리 추출물 (유해균의 점막 부착을 방어하는 과학적 메커니즘)",
+    "natural_aroma": "100% 천연 아로마 에센셜 오일 블렌딩 (라벤더 & 시트러스)"
+  },
+  "clinical_and_safety_tests": {
+    "deodorization_test": "99% 악취 소취력 입증",
+    "allergen_free": "식약처 지정 24종 알레르기 유발 성분 불검출 성적서 보유",
+    "hypoallergenic": "인체 피부 저자극 테스트 완료 (피부 자극 지수 0.00% 무자극 판정)",
+    "target_age": "가임기 여성 및 민감성 피부 대상 전문 처방"
+  }
+}
