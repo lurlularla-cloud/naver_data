@@ -1,8 +1,8 @@
 """
 여성청결제 시장 상세페이지 벤치마킹 및 리뉴얼 전략 인터랙티브 Streamlit 대시보드.
 
-이 대시보드는 18개 주요 브랜드의 상세페이지 분석 데이터, 2x2 포지셔닝 맵, 6대 벤치마킹 매트릭스,
-상세페이지 실제 이미지 갤러리/비교 뷰어, Top-to-Bottom Storyline 비교,
+이 대시보드는 18개 주요 브랜드(올리브영 입점 1위 및 D2C)의 상세페이지 분석 데이터, 2x2 포지셔닝 맵,
+6대 벤치마킹 매트릭스, 올리브영 입점 브랜드 포함 실제 이미지 갤러리/비교 뷰어, Storyline 비교,
 라엘(Target)의 심층 진단 및 타사 레퍼런스 2열 Side-by-Side 매칭, 7개 섹션 리뉴얼 와이어프레임을 시각화합니다.
 모든 시각화는 Plotly를 독점적으로 사용하며, 상단 필수 KPI 카드를 제공합니다.
 """
@@ -84,14 +84,6 @@ st.markdown("""
         border-radius: 8px 8px 0 0;
         font-weight: 600;
     }
-    .image-card {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
     .ref-box-problem {
         background: #FFF1F2;
         border-left: 4px solid #E11D48;
@@ -102,6 +94,13 @@ st.markdown("""
     .ref-box-solution {
         background: #F0FDF4;
         border-left: 4px solid #16A34A;
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 16px;
+    }
+    .ref-box-oliveyoung {
+        background: #F0F9FF;
+        border-left: 4px solid #0284C7;
         padding: 16px;
         border-radius: 0 8px 8px 0;
         margin-bottom: 16px;
@@ -121,7 +120,7 @@ def get_safe_image_path(rel_path):
     candidates = [
         rel_path,
         os.path.join(base_dir, rel_path),
-        os.path.join(base_dir, "images", os.path.basename(rel_path)),
+        os.path.join(base_dir, "images", os.path.basename(os.path.dirname(rel_path)), os.path.basename(rel_path)),
         os.path.join("intimate", rel_path),
         os.path.join("..", rel_path)
     ]
@@ -147,8 +146,8 @@ def load_market_data():
             "unit_price_100ml": 8600,
             "texture": "마일드 버블 폼",
             "scent": "100% 무향",
-            "x_score": 8.5,  # 클린/자연유래 방향
-            "y_score": 3.0,  # 데일리 마일드 방향
+            "x_score": 8.5,
+            "y_score": 3.0,
             "main_copy": "단 8가지 전성분, COSMOS 천연 인증 순한 청결제",
             "key_ingredient": "단 8가지 전성분 (코코베타인, 락틱애씨드 등)",
             "mechanism": "불필요한 성분을 배제한 극단적 미니멀 처방",
@@ -157,6 +156,28 @@ def load_market_data():
             "hooking": "경피 흡수율 높은 점막에 닿는 화학 성분 공포",
             "strengths": "COSMOS 천연 유기농 인증, 단 8가지 성분, 아마존 1위 생리대 신뢰도",
             "weaknesses": "칸디다 99.9% 항균 및 99% 탈취 등 정량 수치 부재로 고민해결력 약함"
+        },
+        {
+            "brand": "바솔 (BASOL)",
+            "product_name": "이너 밸런싱 포밍 워시",
+            "cluster": "클린/비건 웰니스형",
+            "is_target": False,
+            "orig_price": 36000,
+            "sale_price": 23900,
+            "volume_ml": 300,
+            "unit_price_100ml": 7960,
+            "texture": "소프트 마이크로 버블 폼",
+            "scent": "천연 티트리 에센셜",
+            "x_score": 7.5,
+            "y_score": 6.8,
+            "main_copy": "올리브영 W케어 1등! 락토바실러스와 티트리의 산뜻 밸런스",
+            "key_ingredient": "락토바실러스 발효용해물, 호주산 티트리잎 오일, 병풀추출물",
+            "mechanism": "유익균 보호 + 천연 티트리 소취 쿨링 + 버블 저자극",
+            "clinical_proof": "칸디다 99.9% 항균, 2대 가스 소취 완료, 녹색소비자연대 적합",
+            "bundle": "올리브영 단독 [본품 150ml + 리필 150ml] 기획",
+            "hooking": "생리 전후 냄새와 땀 찝찝함, 손 문지름 마찰 자극",
+            "strengths": "올리브영 W케어 1등 엠블럼, 산뜻한 티트리 잔향, 친환경 리필 파우치",
+            "weaknesses": "특화 기능(안티에이징, 장벽보습 등)의 깊이 부족"
         },
         {
             "brand": "이너시아 (INERTIA)",
@@ -169,8 +190,8 @@ def load_market_data():
             "unit_price_100ml": 15260,
             "texture": "마이크로 포밍 폼",
             "scent": "천연 아로마 (라벤더/시트러스)",
-            "x_score": 3.0,  # 더마/임상 과학
-            "y_score": 8.8,  # 문제성 집중 해결
+            "x_score": 3.0,
+            "y_score": 8.8,
             "main_copy": "KAIST 여성 과학자 설계, D-만노스 유해균 부착 차단",
             "key_ingredient": "캐나다 청정 빙하수 100%, D-만노스, 락토 신바이오틱스",
             "mechanism": "D-만노스가 유해균의 점막 섬모 흡착을 원천 차단 (Anti-Adhesion)",
@@ -181,26 +202,92 @@ def load_market_data():
             "weaknesses": "2만 원대 고가로 인한 가격 저항선"
         },
         {
-            "brand": "질경이 (Jilgyungyi)",
-            "product_name": "데일리 에코아 워시 골드",
-            "cluster": "메디컬 고기능 문제해결형",
+            "brand": "아토팜 (ATOPALM)",
+            "product_name": "매터니티 케어 마일드 앤 수딩",
+            "cluster": "더마 약산성 마일드형",
+            "is_target": False,
+            "orig_price": 24000,
+            "sale_price": 14900,
+            "volume_ml": 150,
+            "unit_price_100ml": 9930,
+            "texture": "약산성 버블 폼",
+            "scent": "100% 무향",
+            "x_score": 3.2,
+            "y_score": 4.2,
+            "main_copy": "산부인과 테스트 완료! 임산부도 안심하는 7초 말끔 세정",
+            "key_ingredient": "네오팜 특허 AMPamide™, 신바이오틱스, 전성분 EWG 그린",
+            "mechanism": "피부 장벽 강화 세라마이드 특허 기술 & 잔여물 제로 퀵 린스",
+            "clinical_proof": "산부인과 적합성 '아주 좋음', 7초 퀵 린스 잔여물 0%, 3종 유해균 99%",
+            "bundle": "150ml 본품 단품 & 올리브영 세일 기획",
+            "hooking": "임신/출산 전후 분비물 증가 및 세정 잔여물 자극 불안",
+            "strengths": "산부인과 전문의 테스트 공신력, 7초 퀵 린스 실증, 아토팜 1등 민감케어",
+            "weaknesses": "임산부 타깃으로 일반 여성 확장 시 한계"
+        },
+        {
+            "brand": "쏘피 (SOFY)",
+            "product_name": "쿨링프레쉬 여성청결제",
+            "cluster": "클린/비건 웰니스형",
+            "is_target": False,
+            "orig_price": 16000,
+            "sale_price": 9900,
+            "volume_ml": 150,
+            "unit_price_100ml": 6600,
+            "texture": "마일드 쿨링 폼",
+            "scent": "은은한 민트 쿨링향",
+            "x_score": 7.0,
+            "y_score": 6.5,
+            "main_copy": "그날의 꿉꿉함을 시원하게 날리다! 은은한 마일드 쿨링 버블",
+            "key_ingredient": "식물 유래 쿨링 복합체(멘톨 유도체, 유칼립투스), 락토바실러스",
+            "mechanism": "쏘피 독자 리프레싱 쿨링 처방 (자극 없이 시원한 쿨링감)",
+            "clinical_proof": "칸디다균 항균 완료, 생리혈/분비물 소취 완료, 피부 저자극 0.00",
+            "bundle": "150ml 본품 단품 (올리브영 9천원대 행사)",
+            "hooking": "생리대 착용으로 하루 종일 갇힌 열감과 땀, 꿉꿉함과 냄새",
+            "strengths": "생리대 1위 쏘피 브랜드 신뢰, 확실한 마일드 쿨링감",
+            "weaknesses": "여름철/생리 기간 외 상시 데일리 구매 유인 약함"
+        },
+        {
+            "brand": "유리아쥬 (Uriage)",
+            "product_name": "진피 마일드 젤",
+            "cluster": "더마 약산성 마일드형",
+            "is_target": False,
+            "orig_price": 38000,
+            "sale_price": 24900,
+            "volume_ml": 500,
+            "unit_price_100ml": 4980,
+            "texture": "마일드 젤",
+            "scent": "은은한 플로럴 더마향",
+            "x_score": 2.0,
+            "y_score": 3.5,
+            "main_copy": "프랑스 산부인과 테스트 완료! 특허 글리코-진과 온천수",
+            "key_ingredient": "특허 GLYCO-GYN, 프랑스 천연 등장액 온천수",
+            "mechanism": "Soap-Free 약산성 pH 5.5 & 글리코-진 점막 보호막 테크",
+            "clinical_proof": "프랑스 산부인과 임상 완료, 92% 점막 자극 완화 만족도, 만 4세 승인",
+            "bundle": "500ml 메가 대용량 단품 및 200ml 1+1 더블 기획",
+            "hooking": "점막 세정 시 따가움과 건조함, 비누 성분(Soap)의 점막 파괴",
+            "strengths": "프랑스 온천수 오리진, 글로벌 산부인과 추천 신뢰도",
+            "weaknesses": "특유의 향에 대한 호불호"
+        },
+        {
+            "brand": "일리윤 (Illiyoon)",
+            "product_name": "세라마이드 더마 페미닌 워시",
+            "cluster": "더마 약산성 마일드형",
             "is_target": False,
             "orig_price": 22000,
-            "sale_price": 16900,
-            "volume_ml": 150,
-            "unit_price_100ml": 11260,
-            "texture": "소프트 버블 폼",
-            "scent": "자연 유래 에센셜",
+            "sale_price": 15900,
+            "volume_ml": 300,
+            "unit_price_100ml": 5300,
+            "texture": "약산성 버블 폼",
+            "scent": "100% 무향",
             "x_score": 2.5,
-            "y_score": 9.2,
-            "main_copy": "단순 세정을 넘어선 Y존 안티에이징! 11개국 특허와 3대 임상",
-            "key_ingredient": "11개국 특허 조성물, 바이옴-13, 하이드롤라이즈드 콜라겐",
-            "mechanism": "질경이 13개 특허 기술 집약 & 13종 유익균 영양 래핑",
-            "clinical_proof": "보습 66%↑, 진피 치밀도(탄력) 증가, 톤 브라이트닝, 칸디다 99.9%",
-            "bundle": "150ml 단품 및 N+N 대량 번들 (최대 50% 할인)",
-            "hooking": "탄력 저하, 칙칙한 톤, 건조함 등 Y존의 복합 노화",
-            "strengths": "6,600만 개 신화, 11개국 특허, 3대 안티에이징 임상 독점",
-            "weaknesses": "전통 브랜드 이미지로 20대 유입 장벽"
+            "y_score": 3.8,
+            "main_copy": "아모레×일동 공동특허 녹차유래 락토스킨, 약산성 버블",
+            "key_ingredient": "아모레퍼시픽×일동제약 특허 녹차 락토스킨, 세라마이드",
+            "mechanism": "세라마이드 보습 캡슐 래핑 & 눈시림 없는 안자극 대체 공법",
+            "clinical_proof": "안자극 대체 HET-CAM 완료, 하이포알러제닉 통과, 0.00 비자극",
+            "bundle": "300ml 대용량 펌프 단품",
+            "hooking": "극민감 피부의 세정 후 건조함, 따가움과 피부 장벽 손상",
+            "strengths": "아모레퍼시픽 피부과학 연구소 공신력, 녹차 락토스킨 특허",
+            "weaknesses": "무난한 기본템 이미지로 소구력 차별화 부족"
         },
         {
             "brand": "클리티 (Cleety)",
@@ -247,48 +334,48 @@ def load_market_data():
             "weaknesses": "D2C 자사몰 중심 유통망"
         },
         {
-            "brand": "아토팜 (ATOPALM)",
-            "product_name": "매터니티 케어 마일드 앤 수딩",
-            "cluster": "더마 약산성 마일드형",
+            "brand": "이너생각 (Saengak)",
+            "product_name": "밸런싱 휩드워시",
+            "cluster": "메디컬 고기능 문제해결형",
             "is_target": False,
-            "orig_price": 24000,
-            "sale_price": 14900,
-            "volume_ml": 150,
-            "unit_price_100ml": 9930,
-            "texture": "약산성 버블 폼",
-            "scent": "100% 무향",
-            "x_score": 3.2,
-            "y_score": 4.2,
-            "main_copy": "산부인과 테스트 완료! 임산부도 안심하는 7초 말끔 세정",
-            "key_ingredient": "네오팜 특허 AMPamide™, 신바이오틱스, 전성분 EWG 그린",
-            "mechanism": "피부 장벽 강화 세라마이드 특허 기술 & 잔여물 제로 퀵 린스",
-            "clinical_proof": "산부인과 적합성 '아주 좋음', 7초 퀵 린스 잔여물 0%, 3종 유해균 99%",
-            "bundle": "150ml 본품 단품 & 올리브영 세일 기획",
-            "hooking": "임신/출산 전후 분비물 증가 및 세정 잔여물 자극 불안",
-            "strengths": "산부인과 전문의 테스트 공신력, 7초 퀵 린스 실증, 아토팜 1등 민감케어",
-            "weaknesses": "임산부 타깃으로 일반 여성 확장 시 한계"
+            "orig_price": 26000,
+            "sale_price": 17900,
+            "volume_ml": 180,
+            "unit_price_100ml": 9940,
+            "texture": "고밀도 에어로졸 생크림 휩",
+            "scent": "자연 한방/티트리향",
+            "x_score": 3.5,
+            "y_score": 8.6,
+            "main_copy": "사상자 추출물과 쫀쫀한 휘핑크림 폼! 효과 없으면 100% 환불",
+            "key_ingredient": "한방 사상자(오스톨-논문 3편 인용), 락토 듀오",
+            "mechanism": "에어로졸 캔 공법으로 완성한 고밀도 생크림 휩 텍스처",
+            "clinical_proof": "칸디다 99.9%, 가려움증 67.5% 개선, 암모니아 89.3% 탈취",
+            "bundle": "180ml 단품, 2개/3개 번들 구매 시 무료배송",
+            "hooking": "씻어도 사라지지 않는 가려움증, 흐물거리는 거품의 마찰 자극",
+            "strengths": "100% 전액 환불 보장제, 생크림 휩 텍스처, 가려움 개선 임상",
+            "weaknesses": "가스 충전 에어로졸 캔 폐기 번거로움"
         },
         {
-            "brand": "유리아쥬 (Uriage)",
-            "product_name": "진피 마일드 젤",
-            "cluster": "더마 약산성 마일드형",
+            "brand": "질경이 (Jilgyungyi)",
+            "product_name": "데일리 에코아 워시 골드",
+            "cluster": "메디컬 고기능 문제해결형",
             "is_target": False,
-            "orig_price": 38000,
-            "sale_price": 24900,
-            "volume_ml": 500,
-            "unit_price_100ml": 4980,
-            "texture": "마일드 젤",
-            "scent": "은은한 플로럴 더마향",
-            "x_score": 2.0,
-            "y_score": 3.5,
-            "main_copy": "프랑스 산부인과 테스트 완료! 특허 글리코-진과 온천수",
-            "key_ingredient": "특허 GLYCO-GYN, 프랑스 천연 등장액 온천수",
-            "mechanism": "Soap-Free 약산성 pH 5.5 & 글리코-진 점막 보호막 테크",
-            "clinical_proof": "프랑스 산부인과 임상 완료, 92% 점막 자극 완화 만족도, 만 4세 승인",
-            "bundle": "500ml 메가 대용량 단품 및 200ml 1+1 더블 기획",
-            "hooking": "점막 세정 시 따가움과 건조함, 비누 성분(Soap)의 점막 파괴",
-            "strengths": "프랑스 온천수 오리진, 글로벌 산부인과 추천 신뢰도",
-            "weaknesses": "특유의 향에 대한 호불호"
+            "orig_price": 22000,
+            "sale_price": 16900,
+            "volume_ml": 150,
+            "unit_price_100ml": 11260,
+            "texture": "소프트 버블 폼",
+            "scent": "자연 유래 에센셜",
+            "x_score": 2.5,
+            "y_score": 9.2,
+            "main_copy": "단순 세정을 넘어선 Y존 안티에이징! 11개국 특허와 3대 임상",
+            "key_ingredient": "11개국 특허 조성물, 바이옴-13, 하이드롤라이즈드 콜라겐",
+            "mechanism": "질경이 13개 특허 기술 집약 & 13종 유익균 영양 래핑",
+            "clinical_proof": "보습 66%↑, 진피 치밀도(탄력) 증가, 톤 브라이트닝, 칸디다 99.9%",
+            "bundle": "150ml 단품 및 N+N 대량 번들 (최대 50% 할인)",
+            "hooking": "탄력 저하, 칙칙한 톤, 건조함 등 Y존의 복합 노화",
+            "strengths": "6,600만 개 신화, 11개국 특허, 3대 안티에이징 임상 독점",
+            "weaknesses": "전통 브랜드 이미지로 20대 유입 장벽"
         },
         {
             "brand": "메디온 (MEDION)",
@@ -313,50 +400,6 @@ def load_market_data():
             "weaknesses": "특허 성분의 구체적 시험 수치 공개 부족"
         },
         {
-            "brand": "이너생각 (Saengak)",
-            "product_name": "밸런싱 휩드워시",
-            "cluster": "메디컬 고기능 문제해결형",
-            "is_target": False,
-            "orig_price": 26000,
-            "sale_price": 17900,
-            "volume_ml": 180,
-            "unit_price_100ml": 9940,
-            "texture": "고밀도 에어로졸 생크림 휩",
-            "scent": "자연 한방/티트리향",
-            "x_score": 3.5,
-            "y_score": 8.6,
-            "main_copy": "사상자 추출물과 쫀쫀한 휘핑크림 폼! 효과 없으면 100% 환불",
-            "key_ingredient": "한방 사상자(오스톨-논문 3편 인용), 락토 듀오",
-            "mechanism": "에어로졸 캔 공법으로 완성한 고밀도 생크림 휩 텍스처",
-            "clinical_proof": "칸디다 99.9%, 가려움증 67.5% 개선, 암모니아 89.3% 탈취",
-            "bundle": "180ml 단품, 2개/3개 번들 구매 시 무료배송",
-            "hooking": "씻어도 사라지지 않는 가려움증, 흐물거리는 거품의 마찰 자극",
-            "strengths": "100% 전액 환불 보장제, 생크림 휩 텍스처, 가려움 개선 임상",
-            "weaknesses": "가스 충전 에어로졸 캔 폐기 번거로움"
-        },
-        {
-            "brand": "바솔 (BASOL)",
-            "product_name": "이너 밸런싱 포밍 워시",
-            "cluster": "클린/비건 웰니스형",
-            "is_target": False,
-            "orig_price": 36000,
-            "sale_price": 23900,
-            "volume_ml": 300,
-            "unit_price_100ml": 7960,
-            "texture": "소프트 마이크로 버블 폼",
-            "scent": "천연 티트리 에센셜",
-            "x_score": 7.5,
-            "y_score": 6.8,
-            "main_copy": "올리브영 W케어 1등! 락토바실러스와 티트리의 산뜻 밸런스",
-            "key_ingredient": "락토바실러스 발효용해물, 호주산 티트리잎 오일, 병풀추출물",
-            "mechanism": "유익균 보호 + 천연 티트리 소취 쿨링 + 버블 저자극",
-            "clinical_proof": "칸디다 99.9% 항균, 2대 가스 소취 완료, 녹색소비자연대 적합",
-            "bundle": "올리브영 단독 [본품 150ml + 리필 150ml] 기획",
-            "hooking": "생리 전후 냄새와 땀 찝찝함, 손 문지름 마찰 자극",
-            "strengths": "올리브영 W케어 1등 엠블럼, 산뜻한 티트리 잔향, 친환경 리필 파우치",
-            "weaknesses": "특화 기능(안티에이징, 장벽보습 등)의 깊이 부족"
-        },
-        {
             "brand": "아로마티카 (AROMATICA)",
             "product_name": "퓨어 앤 소프트 / 로즈",
             "cluster": "클린/비건 오가닉형",
@@ -377,50 +420,6 @@ def load_market_data():
             "hooking": "인공 향료와 유해 화학물질에 대한 불안감, 세정 후 건조",
             "strengths": "클린뷰티 1등 헤리티지, 100% 천연 에센셜 오일의 힐링 아로마",
             "weaknesses": "질염 등 문제성 해결에 대한 의학적 소구 미흡"
-        },
-        {
-            "brand": "일리윤 (Illiyoon)",
-            "product_name": "세라마이드 더마 페미닌 워시",
-            "cluster": "더마 약산성 마일드형",
-            "is_target": False,
-            "orig_price": 22000,
-            "sale_price": 15900,
-            "volume_ml": 300,
-            "unit_price_100ml": 5300,
-            "texture": "약산성 버블 폼",
-            "scent": "100% 무향",
-            "x_score": 2.5,
-            "y_score": 3.8,
-            "main_copy": "아모레×일동 공동특허 녹차유래 락토스킨, 약산성 버블",
-            "key_ingredient": "아모레퍼시픽×일동제약 특허 녹차 락토스킨, 세라마이드",
-            "mechanism": "세라마이드 보습 캡슐 래핑 & 눈시림 없는 안자극 대체 공법",
-            "clinical_proof": "안자극 대체 HET-CAM 완료, 하이포알러제닉 통과, 0.00 비자극",
-            "bundle": "300ml 대용량 펌프 단품",
-            "hooking": "극민감 피부의 세정 후 건조함, 따가움과 피부 장벽 손상",
-            "strengths": "아모레퍼시픽 피부과학 연구소 공신력, 녹차 락토스킨 특허",
-            "weaknesses": "무난한 기본템 이미지로 소구력 차별화 부족"
-        },
-        {
-            "brand": "쏘피 (SOFY)",
-            "product_name": "쿨링프레쉬 여성청결제",
-            "cluster": "클린/비건 웰니스형",
-            "is_target": False,
-            "orig_price": 16000,
-            "sale_price": 9900,
-            "volume_ml": 150,
-            "unit_price_100ml": 6600,
-            "texture": "마일드 쿨링 폼",
-            "scent": "은은한 민트 쿨링향",
-            "x_score": 7.0,
-            "y_score": 6.5,
-            "main_copy": "그날의 꿉꿉함을 시원하게 날리다! 은은한 마일드 쿨링 버블",
-            "key_ingredient": "식물 유래 쿨링 복합체(멘톨 유도체, 유칼립투스), 락토바실러스",
-            "mechanism": "쏘피 독자 리프레싱 쿨링 처방 (자극 없이 시원한 쿨링감)",
-            "clinical_proof": "칸디다균 항균 완료, 생리혈/분비물 소취 완료, 피부 저자극 0.00",
-            "bundle": "150ml 본품 단품 (올리브영 9천원대 행사)",
-            "hooking": "생리대 착용으로 하루 종일 갇힌 열감과 땀, 꿉꿉함과 냄새",
-            "strengths": "생리대 1위 쏘피 브랜드 신뢰, 확실한 마일드 쿨링감",
-            "weaknesses": "여름철/생리 기간 외 상시 데일리 구매 유인 약함"
         },
         {
             "brand": "디어스킨 (Dearskin)",
@@ -475,7 +474,7 @@ df = load_market_data()
 # 4. 헤더 및 필수 KPI 요약 카드 (Top Section)
 # -------------------------------------------------------------
 st.title("🌸 여성청결제 시장 분석 & 상세페이지 리뉴얼 대시보드")
-st.caption("18개 주요 브랜드 전수 벤치마킹 데이터 기반 · 포지셔닝 맵 · 벤치마킹 매트릭스 · 실제 이미지 갤러리 · 라엘 리뉴얼 전략 뷰어")
+st.caption("18개 주요 브랜드(올리브영 입점 1위 및 D2C) 전수 벤치마킹 데이터 기반 · 포지셔닝 맵 · 실제 컷 갤러리 · 라엘 리뉴얼 전략 뷰어")
 
 st.markdown("---")
 
@@ -485,8 +484,8 @@ kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
 total_brands = len(df)
 avg_sale_price = df["sale_price"].mean()
 avg_unit_price = df["unit_price_100ml"].mean()
-antibacterial_ratio = 73.3  # 칸디다 99.9% 항균 소구율
-probiotics_ratio = 86.7     # 유익균/마이크로바이옴 소구율
+antibacterial_ratio = 73.3
+probiotics_ratio = 86.7
 
 with kpi1:
     st.markdown(f"""
@@ -568,7 +567,7 @@ filtered_df = df[
 ]
 
 # -------------------------------------------------------------
-# 6. 메인 6대 탭 구조 (이미지 갤러리 및 라엘 벤치마킹 비교 탭 신설)
+# 6. 메인 6대 탭 구조 (올리브영 갤러리 포함)
 # -------------------------------------------------------------
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 1. 시장 개요 & 가격 분석",
@@ -631,14 +630,6 @@ with tab1:
         fig_scatter.update_traces(textposition='top center')
         fig_scatter.update_layout(plot_bgcolor="rgba(0,0,0,0)", height=450)
         st.plotly_chart(fig_scatter, use_container_width=True)
-        
-    st.markdown("---")
-    st.markdown("""
-    💡 **가격 & 용량 분석 인사이트**:
-    - **최고가 프리미엄 존**: 이너시아(22,900원 / 100ml당 15,260원), 질경이(16,900원), 메디온(16,900원)이 포진하여 의학적/특허 기술로 고가격을 정당화함.
-    - **가성비 대용량 존**: 유리아쥬(500ml / 100ml당 4,980원), 일리윤(300ml), 클리티(300ml), 비레시피(300ml)가 대용량 펌프로 패밀리 락인을 구축함.
-    - **기준 제품(라엘)**: 150ml 단품(12,900원 / 100ml당 8,600원)으로 중간 가격대에 위치하나, **리필 및 대용량 라인업이 없어 객단가 확대에 제약**이 발생함.
-    """)
 
 # -------------------------------------------------------------
 # TAB 2: 인터랙티브 2x2 포지셔닝 맵 (Plotly Scatter)
@@ -716,16 +707,6 @@ with tab2:
     )
     
     st.plotly_chart(fig_map, use_container_width=True)
-    
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.info("**클러스터 1: 메디컬 문제해결**\n- 질경이, 이너시아, 클리티, 비레시피\n- 칸디다 99.9% 항균, 99% 탈취\n- D-만노스, 11개국 특허 바이옴")
-    with c2:
-        st.success("**★ Next White Space: 클린 사이언스**\n- **라엘 Next 목표 포지션**\n- COSMOS 천연 유기농 +\n- D-만노스 부착 방어 + 99.9% 항균")
-    with c3:
-        st.warning("**클러스터 2: 더마 마일드형**\n- 아토팜, 유리아쥬, 일리윤\n- 산부인과 테스트, 프랑스 온천수\n- 7초 퀵 린스, 500ml 대용량")
-    with c4:
-        st.error("**클러스터 3: 클린 오가닉 미니멀**\n- **라엘 현재 위치**, 아로마티카, 디어스킨\n- 단 8가지 성분, 100% 무향\n- [결핍] 항균/탈취 실증 수치 부재")
 
 # -------------------------------------------------------------
 # TAB 3: 18개 브랜드 전수 비교 매트릭스 (라엘 최상단 고정)
@@ -803,106 +784,283 @@ with tab3:
             st.markdown("<hr style='margin: 10px 0 20px 0; border: 0; border-top: 1px dashed #CBD5E1;'>", unsafe_allow_html=True)
 
 # -------------------------------------------------------------
-# TAB 4: 상세페이지 이미지 갤러리 & 비교 뷰어 (신규 기능)
+# TAB 4: 상세페이지 이미지 갤러리 & 비교 뷰어 (올리브영 입점 브랜드 대폭 확장)
 # -------------------------------------------------------------
 with tab4:
-    st.subheader("🖼️ 주요 브랜드 상세페이지 실제 컷 갤러리 & 비교 뷰어")
-    st.caption("수집된 실제 상세페이지 상단 핵심 컷(메인 후킹 컷, 성분/포뮬러 컷, 임상 수치 컷, 제형 컷)을 카피라이팅 및 소구 기법 캡션과 함께 비교합니다.")
+    st.subheader("🖼️ 주요 브랜드 상세페이지 실제 컷 갤러리 & 소구 포인트 비교 뷰어")
+    st.caption("올리브영 1등 입점 브랜드 및 상위 D2C 브랜드의 실제 상세페이지 컷과 벤치마킹 핵심 소구 포인트들을 심층 비교합니다.")
     
     brand_gallery_choice = st.selectbox(
-        "상세페이지 컷을 확인할 브랜드를 선택하세요:",
-        options=["클리티 (Cleety) - 8대 임상 & 5대 특허", "뷰티레시피 (B.RECIPE) - 99.9% 항균 & 더마", "이너생각 (Saengak) - 휩드 텍스처 & 가려움 개선"]
+        "상세페이지 실제 컷과 소구 포인트를 확인할 브랜드를 선택하세요:",
+        options=[
+            "🥇 바솔 (BASOL) - 올리브영 1등 W케어 & 리필 파우치 기획 [올영 1등]",
+            "🔬 이너시아 (INERTIA) - KAIST 펨테크 & D-만노스 유해균 차단 [올영 고기능]",
+            "🩺 아토팜 (ATOPALM) - 산부인과 테스트 & 7초 퀵 린스 [올영 더마/임산부]",
+            "❄️ 쏘피 (SOFY) - 마일드 쿨링 폼 & 생리 꿉꿉함 해소 [올영 시즌/생리]",
+            "💧 유리아쥬 (URIAGE) - 프랑스 온천수 & 특허 글리코-진 [올영 글로벌 더마]",
+            "🌿 일리윤 (ILLIYOON) - 아모레×일동 녹차 락토스킨 & 안자극 0.00 [올영 대용량]",
+            "💎 클리티 (Cleety) - 8대 임상 성적서 & 5대 특허 [D2C 임상 폭격]",
+            "🧪 뷰티레시피 (B.RECIPE) - 2대 질염균 99.9% & 독일 더마 EXCELLENT [D2C 질염 해결]",
+            "☁️ 이너생각 (Saengak) - 고밀도 생크림 휩 & 100% 무료 환불 [D2C 제형/전환율]",
+            "★ 라엘 (Rael) - COSMOS 천연 인증 & 단 8가지 성분 [기준 타깃 현재 컷]"
+        ]
     )
     
-    if "클리티" in brand_gallery_choice:
-        st.markdown("#### 💎 클리티(Cleety) 락토 리쥬브네이팅 젤링워시 상세페이지 핵심 컷")
+    # 1. 바솔 (올리브영 1등)
+    if "바솔" in brand_gallery_choice:
+        st.markdown("#### 🥇 바솔(BASOL) 이너 밸런싱 포밍 워시 [올리브영 W케어 1등]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 올리브영 1등 바솔의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>올리브영 1등 엠블럼 선점:</strong> 상단 3초 존에 <strong>'올리브영 W케어 1등'</strong> 공식 뱃지를 배치하여 첫인상 압도적 신뢰 확보.</li>
+                <li><strong>친환경 더블 번들 락인:</strong> <code>[본품 150ml + 친환경 리필 파우치 150ml]</code> 기획으로 플라스틱 절감과 객단가/재구매율 동시 확보.</li>
+                <li><strong>티트리 에센셜 소취 쿨링:</strong> 락토바실러스 발효물과 호주산 티트리 오일로 냄새와 찝찝함을 산뜻하게 해결.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/basol/basol_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 올리브영 1등 엠블럼 & 리필 세트", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'올리브영 W케어 1등! 본품+리필 더블 기획'*\n\n📌 **포인트**: 1등 엠블럼과 리필 파우치의 친환경 가치 제시")
+        with g2:
+            p = get_safe_image_path("images/basol/basol_detail_02.png")
+            if p: st.image(p, caption="[성분 컷] 락토 티트리 마일드 포뮬러", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'유익균 보호와 산뜻한 티트리 밸런스'*\n\n📌 **포인트**: 티트리 잎 오일과 락토바실러스 배합의 저자극 세정")
+        with g3:
+            p = get_safe_image_path("images/basol/basol_detail_03.png")
+            if p: st.image(p, caption="[임상 컷] 칸디다균 99.9% 항균 실증", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'칸디다균 99.9% 항균 & 2대 악취 가스 소취'*\n\n📌 **포인트**: 공인 시험기관의 항균 및 소취 시험 결과 그래프")
+
+    # 2. 이너시아 (KAIST 펨테크)
+    elif "이너시아" in brand_gallery_choice:
+        st.markdown("#### 🔬 이너시아(INERTIA) 더퓨어 3X 마이크로바이옴 [올리브영 최고가 펨테크]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 KAIST 펨테크 이너시아의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>KAIST 여성 과학자 R&D 신뢰도:</strong> 정제수 대신 <strong>'캐나다 청정 빙하수 100%'</strong> 베이스를 사용해 22,900원 프리미엄 정당화.</li>
+                <li><strong>D-만노스 유해균 점막 부착 방어 (Anti-Adhesion):</strong> 단순 살균이 아닌 <em>"세균의 점막 섬모 결합을 차단하여 소변/물과 함께 배출"</em>하는 과학적 기전 최초 도입.</li>
+                <li><strong>24종 알러젠 0% & 99% 악취 소취:</strong> 천연 아로마 에센셜 블렌딩으로 냄새 완벽 케어.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/inertia/inertia_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] KAIST 여성 과학자 설계 바이옴 워시", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'KAIST 여성 과학자가 설계한 3X 마이크로바이옴'*\n\n📌 **포인트**: 과학적 전문성과 펨테크 브랜드 오리진")
+        with g2:
+            p = get_safe_image_path("images/inertia/inertia_detail_02.png")
+            if p: st.image(p, caption="[원리 컷] D-만노스 유해균 점막 부착 차단", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'유해균이 점막에 달라붙지 못하도록 원천 차단'*\n\n📌 **포인트**: 3D 바이오 메커니즘 일러스트레이션으로 기전 규명")
+        with g3:
+            p = get_safe_image_path("images/inertia/inertia_detail_03.png")
+            if p: st.image(p, caption="[성분 컷] 캐나다 청정 빙하수 100%", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'정제수 0%, 캐나다 빙하수로 채운 깊은 진정'*\n\n📌 **포인트**: 베이스 원료의 극단적 차별화로 고가격 납득")
+
+    # 3. 아토팜 (산부인과 & 7초 퀵린스)
+    elif "아토팜" in brand_gallery_choice:
+        st.markdown("#### 🩺 아토팜(ATOPALM) 매터니티 케어 마일드 앤 수딩 [산부인과 테스트 1위]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 아토팜 매터니티 케어의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>산부인과 피부 사용 적합성 '아주 좋음':</strong> 임산부 및 극민감성 여성을 위한 최고 수준의 의학적 안전성 공인.</li>
+                <li><strong>7초 퀵 린스(Quick Rinse) 인체적용시험:</strong> <em>"단 7초 만에 점막 잔여물 0%로 씻겨 내려가는 말끔함"</em>을 실증하여 잔여물 불안감 해소.</li>
+                <li><strong>네오팜 독자 특허 진정 성분 AMPamide™:</strong> 세라마이드 피부 장벽 보호.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/atopalm/atopalm_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 산부인과 피부 사용 적합성 테스트 완료", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'산부인과 전문의 테스트 완료 아주 좋음 획득'*\n\n📌 **포인트**: 전문의 평가 엠블럼으로 임산부도 100% 안심")
+        with g2:
+            p = get_safe_image_path("images/atopalm/atopalm_detail_02.png")
+            if p: st.image(p, caption="[임상 컷] 7초 퀵 린스 잔여물 0% 실증", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'7초 만에 잔여물 없이 말끔하게 씻기는 퀵 린스'*\n\n📌 **포인트**: 세정 잔여물이 점막에 남지 않는 초고속 워시아웃 증명")
+        with g3:
+            p = get_safe_image_path("images/atopalm/atopalm_detail_03.png")
+            if p: st.image(p, caption="[성분 컷] 독자 특허 진정 성분 AMPamide™", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'네오팜 독자 특허 진정 성분과 신바이오틱스'*\n\n📌 **포인트**: 민감한 Y존 장벽을 무너뜨리지 않는 약산성 처방")
+
+    # 4. 쏘피 (쿨링 폼)
+    elif "쏘피" in brand_gallery_choice:
+        st.markdown("#### ❄️ 쏘피(SOFY) 쿨링프레쉬 여성청결제 [생리 꿉꿉함 전문 케어]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 쏘피 쿨링프레쉬의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>생리 기간 맞춤 쿨링 솔루션:</strong> 생리대 착용으로 하루 종일 갇힌 열감과 땀, 꿉꿉함을 <strong>'마일드 쿨링 버블'</strong>로 즉각 리프레시.</li>
+                <li><strong>생리대 1위 브랜드 크로스셀링:</strong> 쏘피 생리대 고객층을 자연스럽게 Y존 청결제로 유입.</li>
+                <li><strong>9천 원대 가성비 & 락토바실러스 발효물:</strong> 칸디다균 항균 및 생리혈 불쾌취 소취 완료.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/sofy/sofy_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 그날의 꿉꿉함을 시원하게 쿨링", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'답답하고 찝찝했던 그날, 상쾌한 쿨링으로 리셋'*\n\n📌 **포인트**: 생리 전후 고객의 직관적 불쾌감 타깃팅")
+        with g2:
+            p = get_safe_image_path("images/sofy/sofy_detail_02.png")
+            if p: st.image(p, caption="[제형 컷] 은은한 쿨링 버블 폼", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'자극 없이 은은하게 퍼지는 마일드 쿨링감'*\n\n📌 **포인트**: 멘톨 유도체와 유칼립투스의 자극 없는 청량감")
+        with g3:
+            p = get_safe_image_path("images/sofy/sofy_detail_03.png")
+            if p: st.image(p, caption="[임상 컷] 불쾌취 소취 & 칸디다균 항균", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'생리혈 냄새와 유해균을 깨끗하게'*\n\n📌 **포인트**: 탈취 및 저자극 테스트 0.00 비자극 인증")
+
+    # 5. 유리아쥬
+    elif "유리아쥬" in brand_gallery_choice:
+        st.markdown("#### 💧 유리아쥬(URIAGE) 진피 마일드 젤 [프랑스 온천수 글로벌 더마]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 유리아쥬 진피 마일드 젤의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>프랑스 천연 등장액 온천수:</strong> 세포와 삼투압이 동일하여 세정 시 따가움과 건조함이 없는 독보적 워터 베이스.</li>
+                <li><strong>특허 GLYCO-GYN COMPLEX:</strong> 글리코 에스테르가 점막 건조를 방지하고 장벽 보호막 형성.</li>
+                <li><strong>Soap-Free (무비누) & 만 4세 사용 승인:</strong> 유아부터 임산부까지 온 가족 패밀리 케어.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/uriage/uriage_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 프랑스 산부인과 테스트 완료", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'프랑스 여성청결제 1등, 특허 글리코-진과 온천수'*\n\n📌 **포인트**: 글로벌 더마코스메틱 브랜드 공신력")
+        with g2:
+            p = get_safe_image_path("images/uriage/uriage_detail_02.png")
+            if p: st.image(p, caption="[성분 컷] Soap-Free & 천연 등장액 온천수", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'비누 성분 없이 자극 없는 마일드 클렌징'*\n\n📌 **포인트**: 외음부 점막을 자극하지 않는 순한 처방")
+        with g3:
+            p = get_safe_image_path("images/uriage/uriage_detail_03.png")
+            if p: st.image(p, caption="[임상 컷] 92% 점막 자극 완화 만족도", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'만 4세 아이부터 임산부까지 온 가족 사용'*\n\n📌 **포인트**: 패밀리 대용량 락인을 이끄는 안전성")
+
+    # 6. 일리윤
+    elif "일리윤" in brand_gallery_choice:
+        st.markdown("#### 🌿 일리윤(ILLIYOON) 세라마이드 더마 페미닌 워시 [대기업 더마 장벽]")
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 일리윤 세라마이드 더마의 핵심 소구 포인트:</h5>
+            <ul>
+                <li><strong>아모레퍼시픽 × 일동제약 공동특허:</strong> <code>녹차 유래 락토스킨 콤플렉스™</code>로 프로바이오틱스 과학 입증.</li>
+                <li><strong>안자극 대체 테스트 (HET-CAM) 통과:</strong> 눈에 들어가도 시리지 않을 만큼 순한 점막 자극 제로 실증.</li>
+                <li><strong>100% 무향 & 300ml 대용량:</strong> 5천원대 극가성비 펌프 용기로 데일리 장악.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/illiyoon/illiyoon_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 녹차 유래 락토스킨 더마 워시", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'아모레퍼시픽×일동제약 공동개발 특허 락토스킨'*\n\n📌 **포인트**: 양대 대기업 R&D 신뢰도 전면 강조")
+        with g2:
+            p = get_safe_image_path("images/illiyoon/illiyoon_detail_02.png")
+            if p: st.image(p, caption="[안전성 컷] 안자극 대체 HET-CAM 통과", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'눈시림 없는 안자극 대체 테스트 완료'*\n\n📌 **포인트**: 점막 민감도에 대한 극단적 안심 보증")
+        with g3:
+            p = get_safe_image_path("images/illiyoon/illiyoon_detail_03.png")
+            if p: st.image(p, caption="[제형 컷] 100% 무향 약산성 버블", use_container_width=True)
+            st.caption("🎯 **핵심 카피**: *'인공 향료 0%, 300ml 넉넉한 대용량'*\n\n📌 **포인트**: 무향 데일리 세정의 편안함")
+
+    # 7. 클리티
+    elif "클리티" in brand_gallery_choice:
+        st.markdown("#### 💎 클리티(Cleety) 락토 리쥬브네이팅 젤링워시 [8대 임상 & 5대 특허]")
         st.info("💡 **소구 특징**: 5대 특허 엠블럼과 8대 공인 임상 성적서 원본을 상단 3초 존에 배치하여 압도적인 의학적 신뢰감을 조성합니다.")
         
         g1, g2, g3, g4 = st.columns(4)
-        
         with g1:
-            p1 = get_safe_image_path("images/cleety/cleety_detail_01.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_01.jpg")
-            if p1:
-                st.image(p1, caption="[Hero 컷] 5대 특허 & 8대 임상 엠블럼", use_container_width=True)
+            p = get_safe_image_path("images/cleety/cleety_detail_01.jpg")
+            if p: st.image(p, caption="[Hero 컷] 5대 특허 & 8대 임상 엠블럼", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'단순한 세정이 아닌 Y존 리쥬브네이팅의 시작'*\n\n📌 **기법**: 3초 만에 시선을 사로잡는 특허 인증마크 전면 배치")
-            
         with g2:
-            p2 = get_safe_image_path("images/cleety/cleety_detail_02.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_02.jpg")
-            if p2:
-                st.image(p2, caption="[문제 공감 컷] Y존 7대 고민 자가진단표", use_container_width=True)
+            p = get_safe_image_path("images/cleety/cleety_detail_02.jpg")
+            if p: st.image(p, caption="[문제 공감 컷] Y존 7대 고민 자가진단표", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'씻어도 사라지지 않는 찝찝함과 냄새, 왜 그럴까요?'*\n\n📌 **기법**: 고객 결핍을 자극하는 체크리스트 전개")
-            
         with g3:
-            p3 = get_safe_image_path("images/cleety/cleety_detail_05.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_05.jpg")
-            if p3:
-                st.image(p3, caption="[임상 실증 컷] 칸디다 99.3% & 탈취 99.5%", use_container_width=True)
+            p = get_safe_image_path("images/cleety/cleety_detail_05.jpg")
+            if p: st.image(p, caption="[임상 실증 컷] 칸디다 99.3% & 탈취 99.5%", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'숫자로 확인하는 놀라운 99.3% 유해균 케어'*\n\n📌 **기법**: 시험 성적서 원본 스캔본 및 균 배양 샬레 비교 컷")
-            
         with g4:
-            p4 = get_safe_image_path("images/cleety/cleety_detail_08.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_08.jpg")
-            if p4:
-                st.image(p4, caption="[성분 솔루션 컷] 제주해수염 & 유산균", use_container_width=True)
+            p = get_safe_image_path("images/cleety/cleety_detail_08.jpg")
+            if p: st.image(p, caption="[성분 솔루션 컷] 제주해수염 & 유산균", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'특허 TEFLOSE®로 유해균 부착 원천 방어'*\n\n📌 **기법**: 3D 바이오 메커니즘 일러스트레이션")
 
+    # 8. 뷰티레시피
     elif "뷰티레시피" in brand_gallery_choice:
-        st.markdown("#### 🧪 뷰티레시피(B.RECIPE) 리틀머메이드 프로바이오틱스 젤 상세페이지 핵심 컷")
+        st.markdown("#### 🧪 뷰티레시피(B.RECIPE) 리틀머메이드 프로바이오틱스 젤 [99.9% 항균]")
         st.info("💡 **소구 특징**: 2대 질염 원인균(칸디다 99.99%, 가드넬라 99.84%) 실명 명시와 독일 더마테스트 EXCELLENT 마크로 구매 저항을 완벽 해소합니다.")
         
         g1, g2, g3, g4 = st.columns(4)
-        
         with g1:
-            p1 = get_safe_image_path("images/beautyrecipe/brecipe_img_01.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_01.jpg")
-            if p1:
-                st.image(p1, caption="[Hero 컷] 독일 더마 EXCELLENT & 99.9% 항균", use_container_width=True)
+            p = get_safe_image_path("images/beautyrecipe/brecipe_img_01.jpg")
+            if p: st.image(p, caption="[Hero 컷] 독일 더마 EXCELLENT & 99.9% 항균", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'독일 더마테스트 최고등급 획득 안심 포뮬러'*\n\n📌 **기법**: 글로벌 공신력 엠블럼 상단 즉각 노출")
-            
         with g2:
-            p2 = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_03.jpg")
-            if p2:
-                st.image(p2, caption="[임상 실증 컷] 2대 질염균 99.9% 성적서", use_container_width=True)
+            p = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg")
+            if p: st.image(p, caption="[임상 실증 컷] 2대 질염균 99.9% 성적서", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'칸디다균 99.99%, 가드넬라균 99.84% 실증'*\n\n📌 **기법**: 한국피부과학연구원 공인 시험성적서 원본 공개")
-            
         with g3:
-            p3 = get_safe_image_path("images/beautyrecipe/brecipe_img_06.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_06.jpg")
-            if p3:
-                st.image(p3, caption="[성분 컷] 특허 여성세정제 조성물 Eve Solution™", use_container_width=True)
+            p = get_safe_image_path("images/beautyrecipe/brecipe_img_06.jpg")
+            if p: st.image(p, caption="[성분 컷] 특허 여성세정제 조성물 Eve Solution™", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'특허 제10-2061302호 항균/소취 독자 조성물'*\n\n📌 **기법**: 특허 등록 번호 명시를 통한 기술력 정당화")
-            
         with g4:
-            p4 = get_safe_image_path("images/beautyrecipe/brecipe_img_08.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_08.jpg")
-            if p4:
-                st.image(p4, caption="[제형 컷] 약산성 pH 3.5~4.5 수분 젤", use_container_width=True)
+            p = get_safe_image_path("images/beautyrecipe/brecipe_img_08.jpg")
+            if p: st.image(p, caption="[제형 컷] 약산성 pH 3.5~4.5 수분 젤", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'건조함 없는 고농축 수분 젤 텍스처'*\n\n📌 **기법**: pH 리트머스 시험지 및 2주 보습 30.79% 개선 실증")
 
-    else:
-        st.markdown("#### ☁️ 이너생각(Saengak) 밸런싱 휩드워시 상세페이지 핵심 컷")
+    # 9. 이너생각
+    elif "이너생각" in brand_gallery_choice:
+        st.markdown("#### ☁️ 이너생각(Saengak) 밸런싱 휩드워시 [생크림 휩 & 100% 환불]")
         st.info("💡 **소구 특징**: 에어로졸 캔 공법의 생크림 휩 텍스처, 가려움증 67.5% 개선 임상, '100% 무료 환불 보장제'로 전환율을 극대화합니다.")
         
         g1, g2, g3, g4 = st.columns(4)
-        
         with g1:
-            p1 = get_safe_image_path("images/saengak/saengak_detail_01.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_01.png")
-            if p1:
-                st.image(p1, caption="[Hero 컷] 생크림 휩 텍스처 & 가려움 개선", use_container_width=True)
+            p = get_safe_image_path("images/saengak/saengak_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 생크림 휩 텍스처 & 가려움 개선", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'단 한 번의 펌핑으로 완성되는 쫀쫀한 생크림 휩'*\n\n📌 **기법**: 마찰 자극 없는 거품 볼륨감 시각화")
-            
         with g2:
-            p2 = get_safe_image_path("images/saengak/saengak_detail_06.jpg") or get_safe_image_path("intimate/images/saengak/saengak_detail_06.jpg")
-            if p2:
-                st.image(p2, caption="[성분 컷] 한방 사상자 추출물 (오스톨)", use_container_width=True)
+            p = get_safe_image_path("images/saengak/saengak_detail_06.jpg")
+            if p: st.image(p, caption="[성분 컷] 한방 사상자 추출물 (오스톨)", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'조선왕실 비책 사상자의 놀라운 진정 효과'*\n\n📌 **기법**: SCI급 논문 3편 인용으로 전통 한방 원료의 과학적 입증")
-            
         with g3:
-            p3 = get_safe_image_path("images/saengak/saengak_detail_14.jpg") or get_safe_image_path("intimate/images/saengak/saengak_detail_14.jpg")
-            if p3:
-                st.image(p3, caption="[임상 실증 컷] 가려움증 67.5% 개선 성적서", use_container_width=True)
+            p = get_safe_image_path("images/saengak/saengak_detail_14.jpg")
+            if p: st.image(p, caption="[임상 실증 컷] 가려움증 67.5% 개선 성적서", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'단 2주 만에 확인된 가려움증 67.5% 완화'*\n\n📌 **기법**: 고객 최다 고민인 가려움에 대한 정량 수치 그래프")
-            
         with g4:
-            p4 = get_safe_image_path("images/saengak/saengak_detail_25.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_25.png")
-            if p4:
-                st.image(p4, caption="[전환 장치 컷] 100% 무료 환불 보장제", use_container_width=True)
+            p = get_safe_image_path("images/saengak/saengak_detail_25.png")
+            if p: st.image(p, caption="[전환 장치 컷] 100% 무료 환불 보장제", use_container_width=True)
             st.caption("🎯 **핵심 카피**: *'사용 후 불만족 시 100% 환불해 드립니다'*\n\n📌 **기법**: 구매 저항선을 0으로 낮추는 강력한 리스크 리버설")
+
+    # 10. 라엘 현재 컷
+    else:
+        st.markdown("#### ★ 라엘(Rael) 천연 여성청결제 [기준 제품 현재 상세페이지 컷]")
+        st.warning("💡 **현재 소구 특징 및 한계**: COSMOS 천연 유기농 인증과 단 8가지 전성분을 강조하나, 고객의 '냄새/분비물/가려움' 해결 수치가 없어 전환율에 한계가 존재합니다.")
+        
+        g1, g2, g3 = st.columns(3)
+        with g1:
+            p = get_safe_image_path("images/target_rael/target_rael_detail_01.png")
+            if p: st.image(p, caption="[Hero 컷] 단 8가지 전성분 천연 여성청결제", use_container_width=True)
+            st.caption("🎯 **현재 카피**: *'단 8가지 전성분, COSMOS 천연 인증'*\n\n📌 **진단**: 제품 설명 위주로 냄새/가려움 고통 공감 부족")
+        with g2:
+            p = get_safe_image_path("images/target_rael/target_rael_detail_02.png")
+            if p: st.image(p, caption="[성분 컷] 불필요한 성분을 배제한 미니멀 처방", use_container_width=True)
+            st.caption("🎯 **현재 카피**: *'식물 유래 코코넛 계면활성제'*\n\n📌 **진단**: 순함은 증명되나, 세균 방어 메커니즘 부재")
+        with g3:
+            p = get_safe_image_path("images/target_rael/target_rael_detail_03.png")
+            if p: st.image(p, caption="[인증 컷] COSMOS NATURAL 인증 마크", use_container_width=True)
+            st.caption("🎯 **현재 카피**: *'피부 저자극 테스트 완료'*\n\n📌 **진단**: 99.9% 항균 성적서 결합 시 폭발적 전환 기대")
 
 # -------------------------------------------------------------
 # TAB 5: 상세페이지 전개 순서(Storyline) 비교 분석
@@ -913,30 +1071,21 @@ with tab5:
     
     story_data = [
         {"브랜드": "★ [기준] 라엘", "1단계 (Hero 후킹)": "COSMOS 천연 인증\n단 8가지 전성분", "2단계 (문제 공감)": "성분 개수에 대한 의문\n복잡한 성분의 자극 우려", "3단계 (기술/포뮬러)": "단 8가지 전성분 공개\n코코넛 식물 유래 세정", "4단계 (임상/안전성)": "피부 저자극 테스트 완료\n(정량 시험수치 미표기)", "5단계 (가치 락인)": "150ml 본품 단품\n청결티슈 묶음 기획"},
-        {"브랜드": "이너시아", "1단계 (Hero 후킹)": "KAIST 여성 과학자 R&D\n펨테크 오리진", "2단계 (문제 공감)": "씻어도 반복되는 재발\n세균 점막 흡착 기전 규명", "3단계 (기술/포뮬러)": "3X 바이옴 (빙하수 100%\n+ 락토 + D-만노스)", "4단계 (임상/안전성)": "99% 악취 소취 성적서\n24종 알러젠 0% 불검출", "5단계 (가치 락인)": "프리미엄 단품\n라보셀 생리대 크로스셀"},
+        {"브랜드": "바솔 (올영 1등)", "1단계 (Hero 후킹)": "올리브영 W케어 1등\n산뜻 밸런스 선점", "2단계 (문제 공감)": "생리 전후 불쾌취/찝찝함\n손 문지름 마찰 자극", "3단계 (기술/포뮬러)": "락토바실러스 발효용해물\n+ 호주산 티트리 + 시카", "4단계 (임상/안전성)": "칸디다균 99.9% 항균\n녹색소비자연대 안전적합", "5단계 (가치 락인)": "[본품 150ml + 리필 150ml]\n올영 단독 더블 기획"},
+        {"브랜드": "이너시아 (KAIST)", "1단계 (Hero 후킹)": "KAIST 여성 과학자 R&D\n펨테크 오리진", "2단계 (문제 공감)": "씻어도 반복되는 재발\n세균 점막 흡착 기전 규명", "3단계 (기술/포뮬러)": "3X 바이옴 (빙하수 100%\n+ 락토 + D-만노스)", "4단계 (임상/안전성)": "99% 악취 소취 성적서\n24종 알러젠 0% 불검출", "5단계 (가치 락인)": "프리미엄 단품\n라보셀 생리대 크로스셀"},
+        {"브랜드": "아토팜 (산부인과)", "1단계 (Hero 후킹)": "산부인과 테스트 완료\n'아주 좋음' 엠블럼", "2단계 (문제 공감)": "임산부 분비물/자극 불안\n점막 잔여물 공포 환기", "3단계 (기술/포뮬러)": "독자 특허 AMPamide™\n신바이오틱스 EWG 그린", "4단계 (임상/안전성)": "7초 퀵 린스 잔여물 0%\n유해균 3종 99% 항균", "5단계 (가치 락인)": "올리브영 단독 세일 기획\n1등 민감케어 신뢰 락인"},
         {"브랜드": "클리티", "1단계 (Hero 후킹)": "5대 특허 엠블럼\n8대 임상 완료 선언", "2단계 (문제 공감)": "7가지 Y존 자가진단\n분비물/가려움/냄새 체크", "3단계 (기술/포뮬러)": "특허 5종 배합 (제주해수염\n+ TEFLOSE® 점막보호)", "4단계 (임상/안전성)": "칸디다 99.3%, 소취 99.5%\n즉각보습 93.09% 성적서", "5단계 (가치 락인)": "300/500ml 대용량\n1+1 리필 번들 파격할인"},
-        {"브랜드": "질경이", "1단계 (Hero 후킹)": "6,600만 개 판매 신화\n단순 세정 脫피 선언", "2단계 (문제 공감)": "Y존 복합 노화 지적\n(탄력 저하, 칙칙함, 건조)", "3단계 (기술/포뮬러)": "11개국 특허 바이옴-13\n하이드롤라이즈드 콜라겐", "4단계 (임상/안전성)": "3대 안티에이징 임상\n(보습 66%, 탄력 치밀도)", "5단계 (가치 락인)": "N+N 대량 번들\n최대 50% 세트 할인"},
-        {"브랜드": "아토팜", "1단계 (Hero 후킹)": "산부인과 테스트 완료\n'아주 좋음' 엠블럼", "2단계 (문제 공감)": "임산부 분비물/자극 불안\n점막 잔여물 공포 환기", "3단계 (기술/포뮬러)": "독자 특허 AMPamide™\n신바이오틱스 EWG 그린", "4단계 (임상/안전성)": "7초 퀵 린스 잔여물 0%\n유해균 3종 99% 항균", "5단계 (가치 락인)": "올리브영 단독 세일 기획\n1등 민감케어 신뢰 락인"},
-        {"브랜드": "바솔", "1단계 (Hero 후킹)": "올리브영 W케어 1등\n산뜻 밸런스 선점", "2단계 (문제 공감)": "생리 전후 불쾌취/찝찝함\n손 문지름 마찰 자극", "3단계 (기술/포뮬러)": "락토바실러스 발효용해물\n+ 호주산 티트리 + 시카", "4단계 (임상/안전성)": "칸디다균 99.9% 항균\n녹색소비자연대 안전적합", "5단계 (가치 락인)": "[본품 150ml + 리필 150ml]\n올영 단독 더블 기획"}
+        {"브랜드": "질경이", "1단계 (Hero 후킹)": "6,600만 개 판매 신화\n단순 세정 脫피 선언", "2단계 (문제 공감)": "Y존 복합 노화 지적\n(탄력 저하, 칙칙함, 건조)", "3단계 (기술/포뮬러)": "11개국 특허 바이옴-13\n하이드롤라이즈드 콜라겐", "4단계 (임상/안전성)": "3대 안티에이징 임상\n(보습 66%, 탄력 치밀도)", "5단계 (가치 락인)": "N+N 대량 번들\n최대 50% 세트 할인"}
     ]
     
     st.table(pd.DataFrame(story_data))
-    
-    st.markdown("""
-    💡 **스토리라인 전환 퍼널 핵심 성공 공식**:
-    1. **Hero 영역 (1단계)**: 3초 안에 시선을 사로잡는 `[임상 수치 / 특허 / 공신력 엠블럼]` 필수 노출.
-    2. **문제 공감 영역 (2단계)**: 단순 증상 나열을 넘어 **"왜 씻어도 냄새와 가려움이 반복되는가?"에 대한 생물학적 원인(알칼리화, 세균 점막 부착)**을 폭로.
-    3. **솔루션 영역 (3단계)**: 단순 추출물이 아닌 **D-만노스, 독자 특허 바이옴, 정제수 0% 빙하수** 등 기술적 차별성 증명.
-    4. **임상 실증 영역 (4단계)**: **시험 성적서 원본 스캔본과 비포/애프터 균 배양 샬레 비교 사진**을 가감 없이 노출.
-    5. **가치 락인 영역 (5단계)**: **[본품 + 리필] 파우치 기획 또는 100% 환불 보증제**로 결제 저항선 제거.
-    """)
 
 # -------------------------------------------------------------
 # TAB 6: 라엘(Target) 심층 진단 & 레퍼런스 벤치마킹
 # -------------------------------------------------------------
 with tab6:
     st.subheader("🚀 라엘(Rael) 여성청결제 심층 진단 및 타사 레퍼런스 비교 벤치마킹")
-    st.caption("라엘의 현재 키메시지와 결핍을 진단하고, 타사의 성공적인 상세페이지 이미지 컷을 Side-by-Side로 대조하여 즉시 적용 가능한 리뉴얼 전략을 제시합니다.")
+    st.caption("라엘의 현재 키메시지와 결핍을 진단하고, 올리브영 1등 및 D2C 타사 베스트 프랙티스 이미지 컷을 Side-by-Side로 대조하여 즉시 적용 가능한 리뉴얼 전략을 제시합니다.")
     
     # 1. 라엘 현재 키메시지 및 결핍 진단
     st.markdown("### 1️⃣ 라엘(Rael)의 현재 포지션 진단 및 결핍(Gap) 분석")
@@ -997,14 +1146,41 @@ with tab6:
     
     # 3. 타사 상세페이지 예시 이미지 벤치마킹 매칭 (Side-by-Side 2열 비교)
     st.markdown("### 3️⃣ 타사 상세페이지 예시 이미지 벤치마킹 매칭 (Side-by-Side 비교)")
-    st.caption("타사 베스트 프랙티스 이미지 컷을 직접 대조하여 라엘 상세페이지의 구체적 구현 방안을 도출합니다.")
+    st.caption("올리브영 1등 및 D2C 타사 베스트 프랙티스 이미지 컷을 직접 대조하여 라엘 상세페이지의 구체적 구현 방안을 도출합니다.")
     
-    # 레퍼런스 1: 직관적 고민 후킹
-    st.markdown("#### ① [직관적 고민 후킹] — 문제 제기 & 자가진단 체크리스트")
+    # 레퍼런스 1: 올리브영 1등 엠블럼 & 리필 기획 (바솔 레퍼런스)
+    st.markdown("#### ① [올리브영 1등 엠블럼 & 리필 기획] — 바솔(BASOL) 벤치마킹")
+    col_ref0_img, col_ref0_text = st.columns([1.2, 1.8])
+    
+    with col_ref0_img:
+        p_ref0 = get_safe_image_path("images/basol/basol_detail_01.png")
+        if p_ref0:
+            st.image(p_ref0, caption="[올리브영 1등 레퍼런스: 바솔] 올영 1등 엠블럼 & 리필 세트 기획 컷", use_container_width=True)
+            
+    with col_ref0_text:
+        st.markdown("""
+        <div class="ref-box-oliveyoung">
+            <h5 style="color: #0284C7; margin-top:0;">💡 올리브영 1위 바솔 소구 기법 분석:</h5>
+            <ul>
+                <li><strong>첫 3초 1등 엠블럼 선점:</strong> '올리브영 W케어 1등' 뱃지를 최상단에 배치하여 대세감 부여.</li>
+                <li><strong>[본품 + 리필 파우치] 더블 세트:</strong> 플라스틱 절감 친환경 메시지와 함께 단품 대비 높은 가성비로 락인.</li>
+            </ul>
+            <h5 style="color: #0F766E;">🎯 라엘 상세페이지 적용 방안:</h5>
+            <ul>
+                <li><strong>3대 골드 엠블럼 상단 배치:</strong> <code>[미국 아마존 1위]</code> + <code>[COSMOS NATURAL 인증]</code> + <code>[칸디다균 99.9% 항균]</code>.</li>
+                <li><strong>올리브영 단독 기획 출시:</strong> <strong>[본품 150ml + 친환경 리필 파우치 150ml (19,900원)]</strong> 런칭.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 레퍼런스 2: 직관적 고민 후킹 (클리티 레퍼런스)
+    st.markdown("#### ② [직관적 고민 후킹] — 문제 제기 & 자가진단 체크리스트")
     col_ref1_img, col_ref1_text = st.columns([1.2, 1.8])
     
     with col_ref1_img:
-        p_ref1 = get_safe_image_path("images/cleety/cleety_detail_02.jpg") or get_safe_image_path("intimate/images/cleety/cleety_detail_02.jpg")
+        p_ref1 = get_safe_image_path("images/cleety/cleety_detail_02.jpg")
         if p_ref1:
             st.image(p_ref1, caption="[타사 레퍼런스: 클리티] 7대 Y존 자가진단 체크리스트 컷", use_container_width=True)
             
@@ -1026,12 +1202,12 @@ with tab6:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 레퍼런스 2: 임상 수치 시각화
-    st.markdown("#### ② [임상 수치 시각화] — 99.9% 항균 & 공인 시험 성적서 원본 노출")
+    # 레퍼런스 3: 임상 수치 시각화 (뷰티레시피 레퍼런스)
+    st.markdown("#### ③ [임상 수치 시각화] — 99.9% 항균 & 공인 시험 성적서 원본 노출")
     col_ref2_img, col_ref2_text = st.columns([1.2, 1.8])
     
     with col_ref2_img:
-        p_ref2 = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg") or get_safe_image_path("intimate/images/beautyrecipe/brecipe_img_03.jpg")
+        p_ref2 = get_safe_image_path("images/beautyrecipe/brecipe_img_03.jpg")
         if p_ref2:
             st.image(p_ref2, caption="[타사 레퍼런스: 뷰티레시피] 2대 질염균 99.9% 성적서 원본 컷", use_container_width=True)
             
@@ -1053,27 +1229,27 @@ with tab6:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 레퍼런스 3: 텍스처 및 씻김성(Quick Rinse)
-    st.markdown("#### ③ [텍스처 & 씻김성] — 마이크로 퀵 린스 폼 & 점막 잔여물 제로")
+    # 레퍼런스 4: 텍스처 및 7초 퀵린스 (아토팜 레퍼런스)
+    st.markdown("#### ④ [텍스처 & 퀵 린스] — 산부인과 테스트 & 7초 잔여물 제로 (아토팜 벤치마킹)")
     col_ref3_img, col_ref3_text = st.columns([1.2, 1.8])
     
     with col_ref3_img:
-        p_ref3 = get_safe_image_path("images/saengak/saengak_detail_01.png") or get_safe_image_path("intimate/images/saengak/saengak_detail_01.png")
+        p_ref3 = get_safe_image_path("images/atopalm/atopalm_detail_02.png")
         if p_ref3:
-            st.image(p_ref3, caption="[타사 레퍼런스: 이너생각] 고밀도 마찰 제로 폼 컷", use_container_width=True)
+            st.image(p_ref3, caption="[올리브영 더마 레퍼런스: 아토팜] 7초 퀵 린스 잔여물 0% 실증 컷", use_container_width=True)
             
     with col_ref3_text:
         st.markdown("""
         <div class="ref-box-solution">
-            <h5 style="margin-top:0;">💡 타사 소구 기법 분석:</h5>
+            <h5 style="margin-top:0;">💡 아토팜 소구 기법 분석:</h5>
             <ul>
-                <li><strong>마찰 자극 제로 강조:</strong> 손바닥으로 비빌 필요 없는 몽글몽글한 미세 거품 제형 시각화.</li>
-                <li><strong>잔여감 없는 쾌감:</strong> 물에 닿는 즉시 5~7초 만에 씻겨 내려가는 '잔여물 제로 퀵 린스' 인체적용시험 결과 강조 (아토팜/이너생각).</li>
+                <li><strong>7초 퀵 린스(Quick Rinse) 인체적용시험:</strong> 잔여물로 인한 가려움과 2차 자극을 우려하는 고객에게 <em>"7초 만에 잔여물 0% 완벽 세정"</em> 수치 제시.</li>
+                <li><strong>산부인과 전문의 테스트 '아주 좋음':</strong> 의학적 공신력으로 극민감성 여성 락인.</li>
             </ul>
             <h5 style="color: #0F766E;">🎯 라엘 상세페이지 적용 방안:</h5>
             <ul>
-                <li><strong>투명 비커 세정 실험 컷:</strong> 비누 잔여물이 남지 않고 물에 완벽히 용해되는 클린 세정 실험 비교 컷 삽입.</li>
-                <li><strong>식물 유래 코코넛 버블:</strong> <em>"손 마찰 제로, 5초 만에 잔여물 없이 씻겨 내려가는 퀵 린스 폼"</em> 헤드카피 적용.</li>
+                <li><strong>투명 비커 5초 용해 실험 컷:</strong> 코코넛 식물 유래 계면활성제가 잔여물 없이 물에 완전히 풀리는 비교 영상/컷 삽입.</li>
+                <li><strong>헤드카피:</strong> <em>"손 마찰 제로, 5초 만에 잔여물 없이 씻겨 내려가는 퀵 린스 폼"</em>.</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
