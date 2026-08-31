@@ -2,7 +2,7 @@
 파일명: app.py
 설명: 네이버 오픈API + 네이버 검색광고 API 기반 
       생리대 브랜드별 네이버 분석 대시보드
-      (조회 기간 변경 시 노출 건수 실시간 동적 집계 & 기업/아마존 뉴스 최상단 정렬)
+      (사용자 지정 기간 일치형 상단 KPI 검색량 & 블로그/뉴스 기간 실시간 동적 집계 완료)
 """
 
 import streamlit as st
@@ -294,7 +294,7 @@ headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_
 # -----------------------------------------------------------------------------
 STOP_WORDS = ["스피치", "학원", "홍진경", "딸", "알라딘", "알라딘서재", "100자평", "서평", "도서", "책소개", "음악", "피아노", "미술", "부고", "감자요리", "숲정원"]
 
-# 1. 검색광고 API 데이터 수집
+# 1. 검색광고 API 월간(30일) 데이터 수집
 ads_dict = {}
 rel_keywords_list = []
 
@@ -324,7 +324,7 @@ if ads_customer_id and ads_api_key and ads_secret_key:
                         "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
                     })
 
-# 2. 데이터랩 검색 트렌드
+# 2. 데이터랩 검색 트렌드 (조회 기간 기준 일별 절대 검색량 계산)
 query_days = (end_date - start_date).days + 1
 prev_end_date = start_date - datetime.timedelta(days=1)
 prev_start_date = prev_end_date - datetime.timedelta(days=query_days - 1)
@@ -346,6 +346,7 @@ prev_datalab_body = {
 res_prev_dl = fetch_naver_api("https://openapi.naver.com/v1/datalab/search", headers=headers_post, method="POST", json_data=prev_datalab_body)
 
 df_daily_trend = pd.DataFrame()
+period_brand_qc = {}  # 👈 사용자가 선택한 시작일 ~ 종료일 기간 동안의 실제 합산 검색량
 growth_rates = {}
 
 if res_dl["status"] == "success":
@@ -361,6 +362,7 @@ if res_dl["status"] == "success":
         data_pts = g.get("data", [])
         sum_ratio = sum(dp["ratio"] for dp in data_pts) if data_pts else 1
         
+        # 전주 대비(최근 7일 vs 직전 7일) 증감률
         if len(data_pts) >= 14:
             recent_7d = sum(dp["ratio"] for dp in data_pts[-7:])
             prev_7d = sum(dp["ratio"] for dp in data_pts[-14:-7])
@@ -376,26 +378,33 @@ if res_dl["status"] == "success":
         period_growth = ((sum_ratio - prev_sum_ratio) / prev_sum_ratio * 100) if prev_sum_ratio > 0 else 0
         growth_rates[clean_b] = {"wow": wow_rate, "period": period_growth}
 
+        # 일별 검색량 환산 및 선택 기간 정확한 누적 합산 (1일당 일평균치 반영)
+        brand_period_sum = 0
         for dp in data_pts:
-            est_daily_qc = int((dp["ratio"] / sum_ratio) * monthly_total) if monthly_total > 0 else dp["ratio"]
+            est_daily_qc = int((dp["ratio"] / 100.0) * (monthly_total / 30.0)) if monthly_total > 0 else int(dp["ratio"])
+            brand_period_sum += est_daily_qc
             trend_rows.append({
                 "날짜": pd.to_datetime(dp["period"]),
                 "브랜드": b_name,
                 "추정 검색수": est_daily_qc,
                 "상대비율(%)": dp["ratio"]
             })
+            
+        period_brand_qc[clean_b] = brand_period_sum
+        
     df_daily_trend = pd.DataFrame(trend_rows)
 
 # -----------------------------------------------------------------------------
-# 6. 상단 Top KPI Cards
+# 6. 상단 Top KPI Cards (선택한 시작일~종료일 기간에 맞춘 실시간 합산치 반영)
 # -----------------------------------------------------------------------------
-total_sum_vol = sum(v["total"] for v in ads_dict.values()) if ads_dict else 0
+total_period_sum_vol = sum(period_brand_qc.values()) if period_brand_qc else 0
 card_cols = st.columns(len(keywords))
 
 for idx, kw in enumerate(keywords):
     clean_k = kw.replace(" ", "")
+    current_period_vol = period_brand_qc.get(clean_k, 0)
     info = ads_dict.get(clean_k, {"pc": 0, "mo": 0, "total": 0, "comp": "미확인"})
-    share = (info["total"] / total_sum_vol * 100) if total_sum_vol > 0 else 0
+    share = (current_period_vol / total_period_sum_vol * 100) if total_period_sum_vol > 0 else 0
     
     g_info = growth_rates.get(clean_k, {"wow": 0.0, "period": 0.0})
     wow_txt = f"+{g_info['wow']:.1f}%" if g_info['wow'] >= 0 else f"{g_info['wow']:.1f}%"
@@ -410,12 +419,12 @@ for idx, kw in enumerate(keywords):
                     <span>{kw}</span>
                     <span class="{badge_class}">SOV {share:.1f}%</span>
                 </div>
-                <div class="kpi-brand-value">{info['total']:,} <span style="font-size:1rem; font-weight:600; color:#8B95A1;">회</span></div>
+                <div class="kpi-brand-value">{current_period_vol:,} <span style="font-size:1rem; font-weight:600; color:#8B95A1;">회</span></div>
                 <div class="kpi-brand-sub">
                     <span style="color:#6B7684;">전주 대비</span>
                     <span style="color:{wow_color}; font-weight:700;">{wow_txt}</span>
                     <span style="color:#D1D6DB;">|</span>
-                    <span style="color:#1B64DA;">MO비중 {((info['mo']/info['total']*100) if info['total']>0 else 0):.0f}%</span>
+                    <span style="color:#1B64DA;">{start_date.strftime('%m.%d')}~{end_date.strftime('%m.%d')} ({query_days}일간)</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -437,7 +446,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
     st.markdown("""
         <div style="font-size:0.88rem; color:#6B7684; margin-bottom:12px;">
-            ℹ️ <b>SOV (Share of Voice, 검색 점유율)란?</b> 시장 내 전체 브랜드 검색량 중 특정 브랜드가 차지하는 비중(%)으로, 소비자의 브랜드 인지도와 시장 장악력을 나타내는 핵심 지표입니다.
+            ℹ️ <b>SOV (Share of Voice, 검색 점유율)란?</b> 선택한 기간 동안 발생한 전체 브랜드 검색량 중 특정 브랜드가 차지하는 비중(%)입니다.
         </div>
     """, unsafe_allow_html=True)
 
@@ -445,8 +454,8 @@ with tab1:
     
     with col_t1:
         st.markdown("#### 📊 브랜드별 검색 점유율 (SOV)")
-        if ads_dict:
-            df_sov = pd.DataFrame([{"브랜드": k, "검색량": v["total"]} for k, v in ads_dict.items()])
+        if period_brand_qc:
+            df_sov = pd.DataFrame([{"브랜드": k, "검색량": v} for k, v in period_brand_qc.items()])
             fig_pie = px.pie(
                 df_sov, names="브랜드", values="검색량", hole=0.55,
                 color_discrete_sequence=["#1B64DA", "#3182F6", "#79B2FE", "#B5D4FE", "#E8F3FF"]
@@ -455,7 +464,7 @@ with tab1:
             fig_pie.update_layout(margin=dict(t=20, b=20, l=10, r=10), showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
         else:
-            st.info("검색광고 API 데이터를 로드 중입니다.")
+            st.info("검색 데이터를 로드 중입니다.")
 
     with col_t2:
         st.markdown("#### 📱 기기별 검색량 비중 (PC vs Mobile)")
@@ -469,38 +478,35 @@ with tab1:
             fig_dev.update_layout(margin=dict(t=20, b=20, l=10, r=10), legend=dict(orientation="h", y=1.1, x=0.75), hovermode="x unified")
             st.plotly_chart(fig_dev, use_container_width=True)
 
-    st.markdown("#### 📋 브랜드별 최근 30일 검색량 및 전주/전기 대비 증감 세부 현황")
+    st.markdown(f"#### 📋 브랜드별 선택 기간({start_date} ~ {end_date}) 검색량 및 증감 세부 현황")
     sov_detail_table = []
-    for k, v in ads_dict.items():
+    for k, v in period_brand_qc.items():
         g = growth_rates.get(k, {"wow": 0.0, "period": 0.0})
-        share_val = (v["total"] / total_sum_vol * 100) if total_sum_vol > 0 else 0
+        share_val = (v / total_period_sum_vol * 100) if total_period_sum_vol > 0 else 0
+        info_item = ads_dict.get(k, {"pc": 0, "mo": 0, "total": 0, "comp": "보통"})
         sov_detail_table.append({
             "브랜드": k,
-            "최근 30일 총 검색수": f"{v['total']:,}회",
+            f"선택 기간({query_days}일) 총 검색수": f"{v:,}회",
             "검색 점유율(SOV)": f"{share_val:.1f}%",
-            "모바일 비중": f"{((v['mo']/v['total']*100) if v['total']>0 else 0):.1f}%",
+            "모바일 비중": f"{((info_item['mo']/info_item['total']*100) if info_item['total']>0 else 0):.1f}%",
             "전주 대비 증감 (WoW)": f"{g['wow']:+.1f}%",
             "전기(동일기간) 대비 증감": f"{g['period']:+.1f}%",
-            "광고 경쟁도": v["comp"]
+            "광고 경쟁도": info_item["comp"]
         })
     st.dataframe(pd.DataFrame(sov_detail_table), use_container_width=True, hide_index=True)
 
-    if ads_dict:
-        sorted_brands = sorted(ads_dict.items(), key=lambda x: x[1]['total'], reverse=True)
-        top1_brand, top1_data = sorted_brands[0]
-        top1_share = (top1_data['total'] / total_sum_vol * 100) if total_sum_vol > 0 else 0
-        
-        lael_data = ads_dict.get("라엘", {})
-        lael_share = (lael_data.get('total', 0) / total_sum_vol * 100) if total_sum_vol > 0 else 0
-        lael_mo_ratio = (lael_data.get('mo', 0) / lael_data.get('total', 1) * 100)
+    if period_brand_qc:
+        sorted_brands = sorted(period_brand_qc.items(), key=lambda x: x[1], reverse=True)
+        top1_brand, top1_val = sorted_brands[0]
+        top1_share = (top1_val / total_period_sum_vol * 100) if total_period_sum_vol > 0 else 0
+        lael_val = period_brand_qc.get("라엘", 0)
+        lael_share = (lael_val / total_period_sum_vol * 100) if total_period_sum_vol > 0 else 0
         
         st.markdown(f"""
             <div class="insight-box">
                 💡 <b>브랜드 SOV 분석 인사이트</b><br>
-                • 현재 시장 검색 점유율 1위는 <b>'{top1_brand}'</b>(점유율 <b>{top1_share:.1f}%</b>)이며, 
-                <b>'라엘'</b>은 점유율 <b>{lael_share:.1f}%</b>로 시장 내 <b>{'선두를 견고히 유지' if top1_brand == '라엘' else '추격 포지션'}</b>하고 있습니다.<br>
-                • 라엘의 모바일 검색 비중은 <b>{lael_mo_ratio:.1f}%</b>로, 스마트폰을 통한 즉시성 탐색과 SNS/올리브영 앱 연계 탐색 비중이 매우 높습니다. 
-                모바일 상세페이지 UX 최적화 및 모바일 전용 프로모션 집행이 필수적입니다.
+                • 선택하신 기간({start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}) 동안 시장 검색 점유율 1위는 <b>'{top1_brand}'</b>(검색수 <b>{top1_val:,}회</b>, 점유율 <b>{top1_share:.1f}%</b>)입니다.<br>
+                • <b>'라엘'</b>은 해당 기간 동안 총 <b>{lael_val:,}회</b>의 검색량을 기록하며 점유율 <b>{lael_share:.1f}%</b>를 차지하고 있습니다.
             </div>
         """, unsafe_allow_html=True)
 
@@ -684,33 +690,13 @@ with tab4:
         st.info("검색광고 API에서 연관 키워드 풀을 조회 중입니다.")
 
 # -----------------------------------------------------------------------------
-# Tab 5: 검색 급증 원인 디깅 (기간 연동 정밀 날짜 매칭 & 동적 수량 집계)
+# Tab 5: 검색 급증 원인 디깅 (날짜 기반 자동 조기종료 & 정밀 건수 집계)
 # -----------------------------------------------------------------------------
 with tab5:
     st.markdown("#### 📰 브랜드별 실시간 소셜 여론 & 미디어 노출 원인 디깅")
     
     selected_target = st.selectbox("디깅 대상 브랜드 선택", options=keywords, index=0)
     
-    # 1. 다중 페이지 수집 (최대 200건 확보하여 날짜 범위 완벽 커버)
-    def fetch_multi_page(url, query, max_pages=2):
-        all_items = []
-        for p in range(max_pages):
-            start_idx = p * 100 + 1
-            res = fetch_naver_api(url, headers=headers_get, params={"query": query, "display": 100, "start": start_idx, "sort": "date"})
-            if res["status"] == "success":
-                items = res["data"].get("items", [])
-                all_items.extend(items)
-                if len(items) < 100:
-                    break
-            else:
-                break
-        return all_items
-
-    raw_b_items = fetch_multi_page("https://openapi.naver.com/v1/search/blog.json", selected_target, max_pages=2)
-    raw_c_items = fetch_multi_page("https://openapi.naver.com/v1/search/cafearticle.json", selected_target, max_pages=2)
-    raw_n_items = fetch_multi_page("https://openapi.naver.com/v1/search/news.json", selected_target, max_pages=2)
-
-    # 2. 날짜별 정밀 필터링 (선택 기간 시작일 ~ 종료일 사이만 정확 추출)
     def parse_item_date(raw_str, is_news=False):
         if not raw_str:
             return None
@@ -726,43 +712,59 @@ with tab5:
         except:
             return None
 
-    # 블로그 & 뉴스 날짜 매칭
-    period_blogs = []
-    seen_b_links = set()
-    for it in raw_b_items:
-        d = parse_item_date(it.get("postdate", ""), is_news=False)
-        link = it.get("link", "")
-        if d and (start_date <= d <= end_date) and link not in seen_b_links:
-            seen_b_links.add(link)
-            period_blogs.append(it)
+    # 날짜 범위에 맞춘 정밀 페이징 수집 함수
+    def fetch_period_items(url, query, is_news=False, max_pages=5):
+        collected = []
+        seen_links = set()
+        for p in range(max_pages):
+            start_idx = p * 100 + 1
+            res = fetch_naver_api(url, headers=headers_get, params={"query": query, "display": 100, "start": start_idx, "sort": "date"})
+            if res["status"] != "success":
+                break
+            items = res["data"].get("items", [])
+            if not items:
+                break
+            
+            reach_older_date = False
+            for it in items:
+                raw_d = it.get("pubDate" if is_news else "postdate", "")
+                d = parse_item_date(raw_d, is_news=is_news)
+                link = it.get("originallink") or it.get("link") or ""
+                
+                if d:
+                    if d < start_date:
+                        # 시작일보다 이전 날짜의 글이 나오면 탐색 종료
+                        reach_older_date = True
+                    elif start_date <= d <= end_date:
+                        if link not in seen_links:
+                            seen_links.add(link)
+                            collected.append(it)
+                            
+            if reach_older_date or len(items) < 100:
+                break
+                
+        return collected
 
-    period_news = []
-    seen_n_links = set()
-    for it in raw_n_items:
-        d = parse_item_date(it.get("pubDate", ""), is_news=True)
-        link = it.get("originallink") or it.get("link") or ""
-        if d and (start_date <= d <= end_date) and link not in seen_n_links:
-            seen_n_links.add(link)
-            period_news.append(it)
-
-    # 카페는 작성일 필드가 없으므로 조회 일수에 비례하여 산출
-    total_days = max(1, (end_date - start_date).days + 1)
+    period_blogs = fetch_period_items("https://openapi.naver.com/v1/search/blog.json", selected_target, is_news=False)
+    period_news = fetch_period_items("https://openapi.naver.com/v1/search/news.json", selected_target, is_news=True)
+    
+    # 카페는 API 날짜 미제공으로 인한 일수 비례 정밀 추산
+    res_c = fetch_naver_api("https://openapi.naver.com/v1/search/cafearticle.json", headers=headers_get, params={"query": selected_target, "display": 100, "sort": "date"})
+    raw_c_items = res_c["data"].get("items", []) if res_c["status"] == "success" else []
     unique_cafes = list({it.get("link"): it for it in raw_c_items if it.get("link")}.values())
     
-    # 노출 건수(URL 기준) 계산
     b_exposure_count = len(period_blogs)
     n_exposure_count = len(period_news)
-    # 카페 기간 추정 노출 건수 (일평균 환산)
-    c_exposure_count = max(1, int(len(unique_cafes) * (total_days / 30.0))) if total_days < 30 else len(unique_cafes)
+    c_exposure_count = max(1, int(len(unique_cafes) * (query_days / 30.0))) if query_days < 30 else len(unique_cafes)
 
-    # 3. 상단 KPI 카드: 지정한 조회 기간 내 실제 노출 건수(URL 기준) 표기
+    # 3. 상단 KPI 카드: 사용자 선택 기간에 따라 실시간으로 변하는 노출 건수 표기
     dig_cols = st.columns(3)
     with dig_cols[0]:
         st.markdown(f"""
             <div class="kpi-card">
                 <div class="kpi-brand-title"><span>✍️ 블로그 기간 노출</span><span class="badge-primary">체험단/후기</span></div>
                 <div class="kpi-brand-value">{b_exposure_count:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
-                <div class="kpi-brand-sub"><span style="color:#1B64DA; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">(선택 기간 실발행 URL)</span></div>
+                <div class="kpi-brand-sub"><span style="color:#1B64DA; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">({query_days}일간 실제 발행 URL)</span></div>
             </div>
         """, unsafe_allow_html=True)
     with dig_cols[1]:
@@ -778,7 +780,7 @@ with tab5:
             <div class="kpi-card">
                 <div class="kpi-brand-title"><span>📰 뉴스 보도자료 기간 노출</span><span class="badge-gray">PR/언론</span></div>
                 <div class="kpi-brand-value">{n_exposure_count:,} <span style="font-size:1rem; color:#8B95A1;">건</span></div>
-                <div class="kpi-brand-sub"><span style="color:#191F28; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">(선택 기간 발행 기사)</span></div>
+                <div class="kpi-brand-sub"><span style="color:#191F28; font-weight:700;">{start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}</span><span style="color:#8B95A1;">({query_days}일간 발행 기사)</span></div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -816,14 +818,13 @@ with tab5:
     
     with col_d1:
         st.markdown(f"##### ✍️ 인플루언서 리뷰 (Blog)")
-        target_blogs = period_blogs if period_blogs else raw_b_items
-        ranked_blogs = rank_items(target_blogs)
+        ranked_blogs = rank_items(period_blogs)
         if ranked_blogs:
             for item in ranked_blogs[:6]:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 st.markdown(f"- 📝 [{t[:28]}...]({item['link']})")
         else:
-            st.caption("해당 기간 내 수집된 블로그 글이 없습니다.")
+            st.caption("선택하신 기간 내 수집된 블로그 글이 없습니다.")
 
     with col_d2:
         st.markdown(f"##### ☕ 커뮤니티/맘카페 글 (Cafe)")
@@ -833,24 +834,23 @@ with tab5:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 st.markdown(f"- 💬 [{t[:28]}...]({item['link']})")
         else:
-            st.caption("해당 기간 내 수집된 카페 글이 없습니다.")
+            st.caption("선택하신 기간 내 수집된 카페 글이 없습니다.")
 
     with col_d3:
         st.markdown(f"##### 📢 최신 언론 보도 (News)")
-        target_news = period_news if period_news else raw_n_items
-        ranked_news = rank_items(target_news, is_news=True)
+        ranked_news = rank_items(period_news, is_news=True)
         if ranked_news:
             for item in ranked_news[:6]:
                 t = item["title"].replace("<b>", "").replace("</b>", "")
                 link = item.get("originallink") or item.get("link")
                 st.markdown(f"- 📰 [{t[:28]}...]({link})")
         else:
-            st.caption("해당 기간 내 수집된 뉴스 기사가 없습니다.")
+            st.caption("선택하신 기간 내 수집된 뉴스 기사가 없습니다.")
 
     st.markdown(f"""
         <div class="insight-box">
             💡 <b>소셜 여론 및 디스커버리 인사이트</b><br>
-            • <b>'{selected_target}'</b>의 선택 기간({start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}) 내 고유 노출은 블로그 <b>{b_exposure_count}건</b>, 뉴스 <b>{n_exposure_count}건</b>으로 집계되었습니다.<br>
+            • <b>'{selected_target}'</b>의 선택 기간({start_date.strftime('%m.%d')} ~ {end_date.strftime('%m.%d')}, {query_days}일간) 내 고유 노출은 블로그 <b>{b_exposure_count:,}건</b>, 뉴스 <b>{n_exposure_count:,}건</b>으로 집계되었습니다.<br>
             • 뉴스 보도자료 상단에는 <b>아마존 진출 및 기업 성장 스토리</b>가 우선 배치되어 브랜드의 신뢰도와 대외 성과를 바로 검증할 수 있습니다.
         </div>
     """, unsafe_allow_html=True)
