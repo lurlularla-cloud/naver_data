@@ -5,3 +5,4 @@ plotly
 numpy
 scipy
 python-dotenv
+google-api-python-client
