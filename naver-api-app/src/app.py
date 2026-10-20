@@ -16,6 +16,7 @@ import numpy as np
 from scipy.stats import skew, kurtosis
 import io
 import os
+import html
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -23,6 +24,10 @@ import hmac
 import hashlib
 import base64
 import time
+
+from naver_search import fetch_naver_data, filter_by_words
+from youtube_search import fetch_youtube_data
+from text_filter import DEFAULT_EXCLUDE_WORDS, parse_word_list, normalize_text
 
 # .env 파일 로드
 env_path = Path(__file__).resolve().parent.parent / ".env"
@@ -151,6 +156,118 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { gap: 12px; border-bottom: 2px solid #F2F4F6; }
     .stTabs [data-baseweb="tab"] { height: 48px; font-size: 1rem; font-weight: 600; color: #8B95A1; padding: 0 16px; border-radius: 8px 8px 0 0; }
     .stTabs [aria-selected="true"] { color: #1B64DA !important; border-bottom: 3px solid #1B64DA !important; }
+
+    .post-card {
+        background: #FFFFFF;
+        border: 1px solid #E5E8EB;
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .post-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .post-channel { padding: 3px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; }
+    .post-channel-blog { background-color: #E6F9EE; color: #03A94D; }
+    .post-channel-news { background-color: #E8F3FF; color: #1B64DA; }
+    .post-channel-cafe { background-color: #FFF4E6; color: #E86A00; }
+    .post-date { font-size: 0.8rem; color: #8B95A1; font-weight: 600; }
+    .post-title a {
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #191F28 !important;
+        text-decoration: none !important;
+        line-height: 1.45;
+    }
+    .post-title a:hover { color: #1B64DA !important; text-decoration: underline !important; }
+    .post-desc {
+        margin-top: 6px;
+        font-size: 0.88rem;
+        color: #4E5968;
+        line-height: 1.6;
+        word-break: keep-all;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .yt-card {
+        background: #FFFFFF;
+        border: 1px solid #E5E8EB;
+        border-radius: 14px;
+        padding: 12px 12px 14px 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .yt-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .yt-thumb {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 10px;
+        display: block;
+    }
+    .yt-title { margin-top: 10px; min-height: 2.9em; }
+    .yt-title a {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #191F28 !important;
+        text-decoration: none !important;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .yt-title a:hover { color: #FF0000 !important; text-decoration: underline !important; }
+    .yt-channel { margin-top: 4px; font-size: 0.82rem; color: #6B7684; font-weight: 600; }
+    .yt-badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .yt-badge-view { background-color: #FFEDED; color: #E00000; padding: 3px 8px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; }
+
+    .rank-box {
+        background: #FFFFFF;
+        border: 1px solid #E5E8EB;
+        border-radius: 14px;
+        padding: 6px 16px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+    .rank-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #F2F4F6;
+    }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-num {
+        width: 26px; height: 26px;
+        border-radius: 8px;
+        background: #F2F4F6; color: #6B7684;
+        font-size: 0.82rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .rank-num-top { background: #FF0000; color: #FFFFFF; }
+    .rank-name {
+        flex: 1;
+        font-size: 0.9rem; font-weight: 700; color: #191F28;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rank-subs { font-size: 0.85rem; font-weight: 700; color: #1B64DA; white-space: nowrap; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -260,6 +377,40 @@ with st.sidebar:
     end_date = st.date_input("조회 종료일", value=today, min_value=start_date, max_value=today)
 
     st.markdown("---")
+    st.markdown("### 🛡️ 노이즈 제외어 (공통)")
+    exclude_raw = st.text_area(
+        "제외할 단어 (쉼표 구분)",
+        value=", ".join(DEFAULT_EXCLUDE_WORDS),
+        height=160,
+        help="제목·본문·채널명에 하나라도 포함되면 제외됩니다. 대소문자와 공백은 무시합니다. "
+             "네이버 원문/유튜브/연관 키워드/급증 원인 디깅 탭에 공통 적용됩니다."
+    )
+    exclude_words = parse_word_list(exclude_raw)
+
+    st.markdown("---")
+    st.markdown("### 💬 소셜 버즈 원문 필터")
+
+    buzz_keyword = st.text_input("검색 키워드", value=keywords[0] if keywords else "")
+    buzz_include_raw = st.text_input("반드시 포함할 단어 (쉼표 구분)", value="", placeholder="예: 생리대, 후기")
+    buzz_include = parse_word_list(buzz_include_raw)
+
+    buzz_period = st.date_input("버즈 조회 기간", value=(start_date, end_date), max_value=today)
+    # 기간 선택 도중(시작일만 선택된 상태)에는 단일 날짜로 처리
+    if isinstance(buzz_period, (list, tuple)):
+        buzz_start = buzz_period[0]
+        buzz_end = buzz_period[1] if len(buzz_period) > 1 else buzz_period[0]
+    else:
+        buzz_start = buzz_end = buzz_period
+
+    buzz_channels = st.multiselect("출처 선택", options=["블로그", "뉴스", "카페"], default=["블로그", "뉴스", "카페"])
+
+    st.markdown("---")
+    st.markdown("### ▶️ 유튜브 화제성 필터")
+
+    yt_keyword = st.text_input("유튜브 검색 키워드", value=keywords[0] if keywords else "")
+    yt_max_results = st.slider("수집 영상 수", min_value=10, max_value=50, value=20, step=10)
+
+    st.markdown("---")
     st.caption(f"⏱️ **자동 업데이트**: 매일 09:00 KST\n(다음 갱신까지: {seconds_until_next_9am//3600}시간 {(seconds_until_next_9am%3600)//60}분 남음)")
     
     if st.button("🔄 캐시 초기화 및 즉시 새로고침", use_container_width=True):
@@ -292,7 +443,8 @@ headers_post = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_
 # -----------------------------------------------------------------------------
 # 불용어 정의
 # -----------------------------------------------------------------------------
-STOP_WORDS = ["스피치", "학원", "홍진경", "딸", "알라딘", "알라딘서재", "100자평", "서평", "도서", "책소개", "음악", "피아노", "미술", "부고", "감자요리", "숲정원"]
+# 사이드바 '노이즈 제외어'를 정규화(소문자·공백 제거)해 기존 탭 필터에도 공통 적용
+STOP_WORDS = [w for w in (normalize_text(w) for w in exclude_words) if w]
 
 # 1. 검색광고 API 월간(30일) 데이터 수집
 ads_dict = {}
@@ -319,7 +471,7 @@ if ads_customer_id and ads_api_key and ads_secret_key:
             if r_kw in clean_input_kws:
                 ads_dict[r_kw] = {"pc": pc, "mo": mo, "total": tot, "comp": c_idx}
             else:
-                if not any(sw in r_kw for sw in STOP_WORDS):
+                if not any(sw in normalize_text(r_kw) for sw in STOP_WORDS):
                     rel_keywords_list.append({
                         "연관 키워드": r_kw, "PC 검색량": pc, "모바일 검색량": mo, "총 검색량": tot, "경쟁도": c_idx
                     })
@@ -395,10 +547,15 @@ if res_dl["status"] == "success":
     df_daily_trend = pd.DataFrame(trend_rows)
 
 # -----------------------------------------------------------------------------
+# 메인 영역 분리: 포털/원문 분석 vs 유튜브 화제성 분석
+# -----------------------------------------------------------------------------
+portal_tab, youtube_tab = st.tabs(["🟢 포털/원문 분석", "▶️ 유튜브 화제성 분석"])
+
+# -----------------------------------------------------------------------------
 # 6. 상단 Top KPI Cards (선택한 시작일~종료일 기간에 맞춘 실시간 합산치 반영)
 # -----------------------------------------------------------------------------
 total_period_sum_vol = sum(period_brand_qc.values()) if period_brand_qc else 0
-card_cols = st.columns(len(keywords))
+card_cols = portal_tab.columns(len(keywords))
 
 for idx, kw in enumerate(keywords):
     clean_k = kw.replace(" ", "")
@@ -432,12 +589,13 @@ for idx, kw in enumerate(keywords):
 # -----------------------------------------------------------------------------
 # 7. 세부 5개 분석 탭
 # -----------------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = portal_tab.tabs([
     "⚔️ ① 브랜드 검색량 & SOV",
     "📈 ② 일별 추정 검색량 & 이상치",
     "🛒 ③ 쇼핑 클릭 & 타깃 분석",
     "🔍 ④ 연관 롱테일 키워드 (Top 20)",
-    "📰 ⑤ 검색 급증 원인 디깅"
+    "📰 ⑤ 검색 급증 원인 디깅",
+    "💬 ⑥ 소셜 버즈 원문 보기"
 ])
 
 # -----------------------------------------------------------------------------
@@ -643,7 +801,7 @@ with tab3:
 # -----------------------------------------------------------------------------
 with tab4:
     st.markdown("#### 🔍 함께 유입되는 브랜드 연관 롱테일 확장 키워드 분석")
-    st.caption("🛡️ **노이즈 필터 적용**: 스피치, 학원, 홍진경, 딸, 도서/알라딘 관련 키워드가 자동 제외되었습니다.")
+    st.caption(f"🛡️ **노이즈 필터 적용**: 사이드바 제외어 {len(STOP_WORDS)}개가 포함된 키워드가 자동 제외되었습니다.")
 
     if rel_keywords_list:
         df_all_rel = pd.DataFrame(rel_keywords_list).sort_values(by="총 검색량", ascending=False).reset_index(drop=True)
@@ -795,7 +953,8 @@ with tab5:
             desc = item.get("description", "").replace("<b>", "").replace("</b>", "")
             blogger = item.get("bloggername", "")
             
-            if any(sw in title or sw in desc or sw in blogger for sw in STOP_WORDS):
+            haystack = normalize_text(title) + "\x00" + normalize_text(desc) + "\x00" + normalize_text(blogger)
+            if any(sw in haystack for sw in STOP_WORDS):
                 continue
             
             score = 0
@@ -854,3 +1013,223 @@ with tab5:
             • 뉴스 보도자료 상단에는 <b>아마존 진출 및 기업 성장 스토리</b>가 우선 배치되어 브랜드의 신뢰도와 대외 성과를 바로 검증할 수 있습니다.
         </div>
     """, unsafe_allow_html=True)
+# -----------------------------------------------------------------------------
+# Tab 6: 소셜 버즈 원문 보기 (naver_search 모듈 기반)
+# -----------------------------------------------------------------------------
+CHANNEL_STYLE = {
+    "블로그": {"icon": "✍️", "css": "post-channel-blog", "color": "#03C75A"},
+    "뉴스": {"icon": "📰", "css": "post-channel-news", "color": "#1B64DA"},
+    "카페": {"icon": "☕", "css": "post-channel-cafe", "color": "#FF7A00"},
+}
+POSTS_PER_PAGE = 10
+
+@st.cache_data(ttl=seconds_until_next_9am)
+def load_buzz_data(keyword):
+    # 정제 전 원본을 캐싱하고 제외어는 아래 filter_by_words에서 적용 (제외어 변경 시 API 재호출 방지)
+    return fetch_naver_data(keyword, display=100, sort="date", exclude_words=[])
+
+with tab6:
+    st.markdown(f"#### 💬 '{buzz_keyword}' 소셜 버즈 언급량 & 원문 모니터링")
+
+    if not buzz_keyword.strip():
+        st.info("사이드바에서 검색 키워드를 입력해주세요.")
+    elif not buzz_channels:
+        st.info("사이드바에서 출처를 하나 이상 선택해주세요.")
+    else:
+        try:
+            df_buzz = load_buzz_data(buzz_keyword.strip())
+        except Exception as e:
+            st.error(f"네이버 검색 API 호출에 실패했습니다: {e}")
+            df_buzz = pd.DataFrame(columns=["title", "description", "link", "postdate", "channel"])
+
+        df_buzz = filter_by_words(df_buzz, must_include_words=buzz_include, exclude_words=exclude_words)
+        df_buzz = df_buzz[df_buzz["channel"].isin(buzz_channels)].copy()
+        df_buzz["date"] = pd.to_datetime(df_buzz["postdate"], errors="coerce")
+
+        # 카페는 API가 작성일을 제공하지 않으므로 기간 필터 대상에서 제외하고 그대로 유지
+        in_period = df_buzz["date"].between(pd.Timestamp(buzz_start), pd.Timestamp(buzz_end))
+        df_buzz = df_buzz[in_period | df_buzz["date"].isna()]
+        df_buzz = df_buzz.sort_values("date", ascending=False, na_position="last").reset_index(drop=True)
+
+        st.caption(
+            f"🗓️ {buzz_start} ~ {buzz_end} · 채널별 최신 100건 수집 기준 · 총 **{len(df_buzz):,}건**"
+            + (f" · 포함어: {', '.join(buzz_include)}" if buzz_include else "")
+            + (f" · 노이즈 제외어 {len(exclude_words)}개 적용" if exclude_words else "")
+        )
+
+        if df_buzz.empty:
+            st.info("조건에 맞는 게시글이 없습니다. 기간이나 포함/제외 단어를 조정해보세요.")
+        else:
+            col_b1, col_b2 = st.columns([2, 1])
+
+            with col_b1:
+                st.markdown("##### 📈 날짜별 언급량 추이")
+                df_dated = df_buzz.dropna(subset=["date"])
+                if df_dated.empty:
+                    st.caption("작성일이 제공되는 블로그/뉴스 글이 없어 추이를 표시할 수 없습니다.")
+                else:
+                    date_index = pd.date_range(buzz_start, buzz_end, freq="D")
+                    daily = (
+                        df_dated.groupby(["date", "channel"]).size()
+                        .unstack(fill_value=0)
+                        .reindex(date_index, fill_value=0)
+                    )
+                    fig_buzz = go.Figure()
+                    for ch in daily.columns:
+                        fig_buzz.add_trace(go.Scatter(
+                            x=daily.index, y=daily[ch], name=ch, mode="lines+markers",
+                            line=dict(color=CHANNEL_STYLE[ch]["color"], width=2.5),
+                            marker=dict(size=5),
+                            hovertemplate="%{y:,}건"
+                        ))
+                    fig_buzz.update_layout(
+                        template="plotly_white", hovermode="x unified",
+                        margin=dict(t=20, b=20, l=10, r=10),
+                        legend=dict(orientation="h", y=1.1, x=0.7),
+                        yaxis_title="언급 수"
+                    )
+                    st.plotly_chart(fig_buzz, use_container_width=True)
+                    if "카페" in buzz_channels:
+                        st.caption("ℹ️ 카페 글은 API에서 작성일을 제공하지 않아 추이 차트에서 제외됩니다.")
+
+            with col_b2:
+                st.markdown("##### 🥧 채널별 비중")
+                ch_counts = df_buzz["channel"].value_counts().reset_index()
+                ch_counts.columns = ["채널", "게시글 수"]
+                fig_ch = px.pie(
+                    ch_counts, names="채널", values="게시글 수", hole=0.55, color="채널",
+                    color_discrete_map={ch: s["color"] for ch, s in CHANNEL_STYLE.items()}
+                )
+                fig_ch.update_traces(textposition="inside", textinfo="percent+label", hoverinfo="label+value+percent")
+                fig_ch.update_layout(margin=dict(t=20, b=20, l=10, r=10), showlegend=False)
+                st.plotly_chart(fig_ch, use_container_width=True)
+
+            # 원문 카드 리스트 + 페이지네이션 (필터가 바뀌면 1페이지로 초기화)
+            st.markdown("##### 📄 원문 보기 (최신순)")
+
+            filter_signature = (buzz_keyword, tuple(buzz_include), tuple(exclude_words), buzz_start, buzz_end, tuple(buzz_channels))
+            if st.session_state.get("buzz_filter_signature") != filter_signature:
+                st.session_state["buzz_filter_signature"] = filter_signature
+                st.session_state["buzz_page"] = 1
+
+            total_pages = max(1, -(-len(df_buzz) // POSTS_PER_PAGE))
+            page = min(st.session_state.get("buzz_page", 1), total_pages)
+            page_df = df_buzz.iloc[(page - 1) * POSTS_PER_PAGE: page * POSTS_PER_PAGE]
+
+            for _, row in page_df.iterrows():
+                style = CHANNEL_STYLE[row["channel"]]
+                date_txt = row["postdate"] if row["postdate"] else "작성일 미제공"
+                st.markdown(f"""
+                    <div class="post-card">
+                        <div class="post-card-head">
+                            <span class="post-channel {style['css']}">{style['icon']} {row['channel']}</span>
+                            <span class="post-date">{date_txt}</span>
+                        </div>
+                        <div class="post-title">
+                            <a href="{html.escape(row['link'], quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(row['title'])}</a>
+                        </div>
+                        <div class="post-desc">{html.escape(row['description'])}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            col_p1, col_p2, col_p3 = st.columns([1, 2, 1])
+            with col_p1:
+                if st.button("◀ 이전", disabled=page <= 1, use_container_width=True, key="buzz_prev"):
+                    st.session_state["buzz_page"] = page - 1
+                    st.rerun()
+            with col_p2:
+                st.markdown(
+                    f"<div style='text-align:center; padding-top:8px; color:#4E5968; font-weight:600;'>"
+                    f"{page} / {total_pages} 페이지</div>",
+                    unsafe_allow_html=True
+                )
+            with col_p3:
+                if st.button("다음 ▶", disabled=page >= total_pages, use_container_width=True, key="buzz_next"):
+                    st.session_state["buzz_page"] = page + 1
+                    st.rerun()
+
+# -----------------------------------------------------------------------------
+# 유튜브 화제성 분석 (youtube_search 모듈 기반)
+# -----------------------------------------------------------------------------
+def format_count(n):
+    """큰 숫자를 1.2억 / 16.7만 / 9,999 형태로 축약한다."""
+    n = int(n)
+    if n >= 100_000_000:
+        return f"{n / 100_000_000:.1f}억"
+    if n >= 10_000:
+        return f"{n / 10_000:.1f}만"
+    return f"{n:,}"
+
+with youtube_tab:
+    st.markdown(f"#### ▶️ '{yt_keyword}' 유튜브 화제성 분석")
+
+    if not yt_keyword.strip():
+        st.info("사이드바에서 유튜브 검색 키워드를 입력해주세요.")
+    else:
+        try:
+            df_yt = fetch_youtube_data(yt_keyword.strip(), max_results=yt_max_results, exclude_words=exclude_words)
+        except Exception as e:
+            st.error(f"YouTube Data API 호출에 실패했습니다: {e}")
+            df_yt = pd.DataFrame()
+
+        if df_yt.empty:
+            st.info("검색된 동영상이 없습니다. 다른 키워드로 검색해보세요.")
+        else:
+            st.caption(f"🔎 YouTube 검색 관련도 상위 {len(df_yt)}개 영상 기준 · 1시간 단위 캐싱")
+
+            # 상단 KPI 4종
+            kpi_cols = st.columns(4)
+            kpi_cols[0].metric("🎬 총 동영상 수", f"{len(df_yt):,}개")
+            kpi_cols[1].metric("👀 총 조회수", format_count(df_yt["view_count"].sum()))
+            kpi_cols[2].metric("👍 총 좋아요 수", format_count(df_yt["like_count"].sum()))
+            kpi_cols[3].metric("💬 총 댓글 수", format_count(df_yt["comment_count"].sum()))
+
+            st.markdown("")
+            col_v, col_rank = st.columns([3, 1])
+
+            # 우측: 구독자 순 영향력 높은 채널 TOP 6
+            with col_rank:
+                st.markdown("##### 🏆 영향력 높은 채널")
+                top_channels = (
+                    df_yt.drop_duplicates("channel_title")
+                    .sort_values("subscriber_count", ascending=False)
+                    .head(6)
+                )
+                rank_rows = ""
+                for rank, (_, ch) in enumerate(top_channels.iterrows(), start=1):
+                    num_css = "rank-num rank-num-top" if rank <= 3 else "rank-num"
+                    subs_txt = format_count(ch["subscriber_count"]) if ch["subscriber_count"] > 0 else "비공개"
+                    rank_rows += (
+                        f'<div class="rank-row">'
+                        f'<span class="{num_css}">{rank}</span>'
+                        f'<span class="rank-name">{html.escape(ch["channel_title"])}</span>'
+                        f'<span class="rank-subs">{subs_txt}</span>'
+                        f'</div>'
+                    )
+                st.markdown(f'<div class="rank-box">{rank_rows}</div>', unsafe_allow_html=True)
+                st.caption("구독자 수 기준 · 수집된 영상의 채널 대상")
+
+            # 좌측: 조회수 순 인기 동영상 그리드 (2열)
+            with col_v:
+                st.markdown("##### 🔥 인기 동영상 (조회수 순)")
+                df_popular = df_yt.sort_values("view_count", ascending=False).reset_index(drop=True)
+                for start in range(0, len(df_popular), 2):
+                    grid_cols = st.columns(2)
+                    for col, (_, v) in zip(grid_cols, df_popular.iloc[start:start + 2].iterrows()):
+                        url = html.escape(v["video_url"], quote=True)
+                        col.markdown(f"""
+                            <div class="yt-card">
+                                <a href="{url}" target="_blank" rel="noopener noreferrer">
+                                    <img class="yt-thumb" src="{html.escape(v['thumbnail_url'], quote=True)}" alt="thumbnail">
+                                </a>
+                                <div class="yt-title">
+                                    <a href="{url}" target="_blank" rel="noopener noreferrer">{html.escape(v['title'])}</a>
+                                </div>
+                                <div class="yt-channel">📺 {html.escape(v['channel_title'])} · {v['published_at'].strftime('%Y-%m-%d')}</div>
+                                <div class="yt-badges">
+                                    <span class="yt-badge-view">👀 {format_count(v['view_count'])}</span>
+                                    <span class="badge-primary">👍 {format_count(v['like_count'])}</span>
+                                    <span class="badge-gray">💬 {format_count(v['comment_count'])}</span>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)

@@ -28,9 +28,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables
+# Environment Variables & Secrets
 .env
-.env.local
+.env.*
+**/.streamlit/secrets.toml
+secrets.toml
 
 # IDE & Editor
 .vscode/
